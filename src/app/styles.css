@@ -1,0 +1,37 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root,
+.app-shell,
+.phaser-host {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #07160f;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.app-shell,
+.phaser-host {
+  position: fixed;
+  inset: 0;
+}
+
+.phaser-host {
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phaser-host canvas {
+  display: block;
+}

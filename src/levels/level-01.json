@@ -1,0 +1,27 @@
+{
+  "id": "level-01",
+  "nome": "A Cascata de Dados: Clareira Inicial",
+  "biome": {
+    "restaurado": "assets/images/Back_faseResolvida.png",
+    "corrompido": "assets/images/Back_faseBugg.png"
+  },
+  "robotSpawn": {
+    "x": 132,
+    "y": 520
+  },
+  "waterSlots": [
+    { "id": "slot-flores", "x": 340, "y": 468 },
+    { "id": "slot-arvores", "x": 525, "y": 438 },
+    { "id": "slot-solo", "x": 720, "y": 472 }
+  ],
+  "targets": [
+    { "output": "Flores", "initial": 40, "goal": 50 },
+    { "output": "Arvores", "initial": 40, "goal": 20 },
+    { "output": "Solo", "initial": 60, "goal": 30 }
+  ],
+  "assets": {
+    "robo_adicao": "assets/images/Robos/Adicao.png",
+    "robo_divisao": "assets/images/Robos/Subtracao.png"
+  }
+}
+

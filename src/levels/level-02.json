@@ -1,0 +1,21 @@
+{
+  "id": "level-02",
+  "nome": "Cavernas de Cristal",
+  "biome": {
+    "restaurado": "bioma-restaurado",
+    "corrompido": "bioma-corrompido"
+  },
+  "robotSpawn": {
+    "x": 260,
+    "y": 380
+  },
+  "waterSlots": [
+    { "id": "slot-a", "x": 300, "y": 450 },
+    { "id": "slot-b", "x": 390, "y": 450 },
+    { "id": "slot-c", "x": 480, "y": 450 }
+  ],
+  "targets": [
+    { "output": "Flores", "goal": 80 },
+    { "output": "Arvores", "goal": 40 }
+  ]
+}

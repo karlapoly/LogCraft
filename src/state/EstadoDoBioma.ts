@@ -1,0 +1,5 @@
+export enum EstadoDoBioma {
+  CORROMPIDO = "CORROMPIDO",
+  RESTAURANDO = "RESTAURANDO",
+  RESTAURADO = "RESTAURADO"
+}

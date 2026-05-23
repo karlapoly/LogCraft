@@ -1,0 +1,1287 @@
+import Phaser from "phaser";
+import type { WaterSlotConfig } from "../../levels/types";
+import { biomaStoreApi, type MetaDeBioma } from "../../state/biomaStore";
+import { EstadoDoBioma } from "../../state/EstadoDoBioma";
+
+type CascataSceneData = {
+  subLevel?: number;
+};
+
+type TipoDeOperacaoDaCascata = "adicao" | "divisao";
+
+type SlotView = {
+  slot: WaterSlotConfig;
+  output: string;
+  anchorX: number;
+  anchorY: number;
+  zone: Phaser.GameObjects.Zone;
+  plaque: Phaser.GameObjects.Image;
+  valueText: Phaser.GameObjects.Text;
+  progressText: Phaser.GameObjects.Text;
+  meterBackground: Phaser.GameObjects.Rectangle;
+  meterFill: Phaser.GameObjects.Rectangle;
+};
+
+type PhaseElementConfig = {
+  id: string;
+  textureKey: string;
+  path: string;
+  x: number;
+  y: number;
+  scale?: number;
+  depth?: number;
+  angle?: number;
+  output?: string;
+  restoreTextureKey?: string;
+  restoreScaleMultiplier?: number;
+};
+
+type PhaseElementView = {
+  id: string;
+  anchorX: number;
+  anchorY: number;
+  image: Phaser.GameObjects.Image;
+};
+
+type RobotButtonView = {
+  operation: TipoDeOperacaoDaCascata;
+  sprite: Phaser.GameObjects.Image;
+  label: Phaser.GameObjects.Text;
+  homeX: number;
+  homeY: number;
+};
+
+type CascataSubLevelConfig = {
+  subtitle: string;
+  background: string;
+  robotButtons: Array<{
+    operation: TipoDeOperacaoDaCascata;
+    texture: string;
+    label: string;
+    x: number;
+    y: number;
+  }>;
+  targets: Array<{
+    output: string;
+    initial: number;
+    goal: number;
+  }>;
+};
+
+const BASE_WIDTH = 1024;
+const BASE_HEIGHT = 640;
+const TOP_PADDING = 26;
+const SIDE_PADDING = 40;
+const BOTTOM_PADDING = 28;
+const PANEL_WIDTH = 132;
+const PANEL_HEIGHT = 182;
+const BAR_WIDTH = 300;
+const BAR_HEIGHT = 30;
+const BAR_LABEL_HEIGHT = 28;
+const HEALTH_RING_RADIUS = 52;
+const HEALTH_RING_THICKNESS = 14;
+const PLAYFIELD_TOP_OFFSET = 108;
+const PLAYFIELD_SIDE_MARGIN = 32;
+const SLOT_ZONE_WIDTH = 230;
+const SLOT_ZONE_HEIGHT = 150;
+const SLOT_PLAQUE_WIDTH = 174;
+const SLOT_PLAQUE_HEIGHT = 98;
+const SLOT_METER_WIDTH = 108;
+const SLOT_METER_HEIGHT = 10;
+const SLOT_METER_FILL_WIDTH = 112;
+const SLOT_METER_FILL_HEIGHT = 6;
+const LEVEL_PLAQUE_KEY = "cascata-level-plaque";
+const LEVEL_PLAQUE_PATH = "assets/images/PlacaNivel.png";
+const ROBOT_PANEL_KEY = "cascata-robot-panel-plaque";
+const ROBOT_PANEL_PATH = "assets/images/PlacaRobos.png";
+const BACK_BUTTON_KEY = "cascata-back-button";
+const BACK_BUTTON_PATH = "assets/images/Back.png";
+const BACKGROUND_CORRUPTED_KEY = "cascata-background-corrupted";
+const BACKGROUND_CORRUPTED_PATH = "assets/images/Back_faseBugg.png";
+const BACKGROUND_RESTORED_KEY = "cascata-background-restored";
+const BACKGROUND_RESTORED_PATH = "assets/images/Back_faseResolvida.png";
+const ROBO_ADICAO_KEY = "cascata-robo-adicao";
+const ROBO_ADICAO_PATH = "assets/images/robo_adicao.png";
+const ROBO_DIVISAO_KEY = "cascata-robo-divisao";
+const ROBO_DIVISAO_PATH = "assets/images/robo_divisao.png";
+const NEXT_BUTTON_KEY = "cascata-next-button";
+const NEXT_BUTTON_PATH = "assets/images/Next.png";
+const HOME_BUTTON_KEY = "cascata-home-button";
+const HOME_BUTTON_PATH = "assets/images/Home.png";
+const FLOR_VIVA_KEY = "fase-florviva";
+const FLOR_VIVA_PATH = "assets/images/fases/FlorViva.png";
+const FLOR_VIVA_2_KEY = "fase-florviva2";
+const FLOR_VIVA_2_PATH = "assets/images/fases/FlorViva2.png";
+const VASO_FLOR_KEY = "fase-vasovivoflor";
+const VASO_FLOR_PATH = "assets/images/fases/VasVivoFlor.png";
+const AGUA_FLOR_KEY = "fase-aguaflorlimpa";
+const AGUA_FLOR_PATH = "assets/images/fases/AguaFlorLimpa.png";
+const CACHU_LIMPA_KEY = "fase-cachulimpa";
+const CACHU_LIMPA_PATH = "assets/images/fases/CachuLimpa.png";
+const VASO_SOLO_KEY = "fase-vasovivosolo";
+const VASO_SOLO_PATH = "assets/images/fases/VasVivoSolo.png";
+const AGUA_SOLO_KEY = "fase-aguasololimpa";
+const AGUA_SOLO_PATH = "assets/images/fases/AguaSoloLimpa.png";
+const VASO_ARVORE_KEY = "fase-vasovivoarvo";
+const VASO_ARVORE_PATH = "assets/images/fases/VasVivoArvo.png";
+const AGUA_ARVORE_KEY = "fase-aguaarvorelimpa";
+const AGUA_ARVORE_PATH = "assets/images/fases/AguaArvoreLimpa.png";
+const ARVORE_VIVA_1_KEY = "fase-arvoreviva1";
+const ARVORE_VIVA_1_PATH = "assets/images/fases/ArViva1.png";
+const ARVORE_VIVA_2_KEY = "fase-arvoreviva2";
+const ARVORE_VIVA_2_PATH = "assets/images/fases/ArViva2.png";
+const ARVORE_VIVA_3_KEY = "fase-arvoreviva3";
+const ARVORE_VIVA_3_PATH = "assets/images/fases/ArvoreViva3.png";
+
+const PHASE_ELEMENT_CONFIGS: PhaseElementConfig[] = [
+  {
+    id: "ar_morta_1",
+    textureKey: "fase-armorta",
+    path: "assets/images/fases/ArMorta.png",
+    x: 676,
+    y: 577,
+    scale: 0.242,
+    output: "Arvores",
+    restoreTextureKey: ARVORE_VIVA_1_KEY
+  },
+  {
+    id: "flo_morta_1",
+    textureKey: "fase-flomorta",
+    path: "assets/images/fases/FlorMorta.png",
+    x: 302,
+    y: 188,
+    output: "Flores",
+    restoreTextureKey: FLOR_VIVA_2_KEY
+  },
+  {
+    id: "flo_morta_2",
+    textureKey: "fase-flomorta",
+    path: "assets/images/fases/FlorMorta.png",
+    x: 392,
+    y: 187,
+    scale: 0.12,
+    output: "Flores",
+    restoreTextureKey: FLOR_VIVA_2_KEY
+  },
+  {
+    id: "flo_morta_3",
+    textureKey: "fase-flomorta",
+    path: "assets/images/fases/FlorMorta.png",
+    x: 375,
+    y: 530,
+    output: "Flores",
+    restoreTextureKey: FLOR_VIVA_KEY
+  },
+  {
+    id: "ar_1_a",
+    textureKey: "fase-ar1",
+    path: "assets/images/fases/Ar1.png",
+    x: 147,
+    y: 520,
+    scale: 0.4541,
+    output: "Arvores",
+    restoreTextureKey: ARVORE_VIVA_2_KEY,
+    restoreScaleMultiplier: 0.9
+  },
+  {
+    id: "ar_1_b",
+    textureKey: "fase-ar1",
+    path: "assets/images/fases/Ar1.png",
+    x: 1292,
+    y: 306,
+    scale: 0.4541,
+    output: "Arvores",
+    restoreTextureKey: ARVORE_VIVA_2_KEY,
+    restoreScaleMultiplier: 0.9
+  },
+  {
+    id: "ar_1_c",
+    textureKey: "fase-ar1",
+    path: "assets/images/fases/Ar1.png",
+    x: 1543,
+    y: 652,
+    scale: 0.4541,
+    output: "Arvores",
+    restoreTextureKey: ARVORE_VIVA_2_KEY,
+    restoreScaleMultiplier: 0.9
+  },
+  {
+    id: "ar_3_a",
+    textureKey: "fase-ar3",
+    path: "assets/images/fases/Ar3.png",
+    x: 524,
+    y: 245,
+    output: "Arvores",
+    restoreTextureKey: ARVORE_VIVA_2_KEY,
+    restoreScaleMultiplier: 0.9
+  }
+];
+
+const RESTORE_SUPPORT_CONFIGS: Record<string, PhaseElementConfig[]> = {
+  Flores: [
+    { id: "vaso_flor", textureKey: VASO_FLOR_KEY, path: VASO_FLOR_PATH, x: 390, y: 589, scale: 0.33, depth: -6 },
+    { id: "agua_flor", textureKey: AGUA_FLOR_KEY, path: AGUA_FLOR_PATH, x: 648, y: 414, scale: 0.605, depth: -2, angle: 15 }
+  ],
+  Solo: [
+    { id: "vaso_solo", textureKey: VASO_SOLO_KEY, path: VASO_SOLO_PATH, x: 942, y: 590, scale: 0.32, depth: -3 },
+    { id: "agua_solo", textureKey: AGUA_SOLO_KEY, path: AGUA_SOLO_PATH, x: 934, y: 435, scale: 0.4, depth: -3 }
+  ],
+  Arvores: [
+    { id: "vaso_arvore", textureKey: VASO_ARVORE_KEY, path: VASO_ARVORE_PATH, x: 676, y: 655, scale: 0.33, depth: -3 },
+    { id: "agua_arvore", textureKey: AGUA_ARVORE_KEY, path: AGUA_ARVORE_PATH, x: 756, y: 480, scale: 0.53, depth: -7, angle: 15 }
+  ]
+};
+
+const WATER_SLOTS: WaterSlotConfig[] = [
+  { id: "slot-flores", x: 340, y: 468 },
+  { id: "slot-arvores", x: 525, y: 438 },
+  { id: "slot-solo", x: 720, y: 472 }
+];
+
+const PLAQUE_POSITIONS = [
+  { x: 384, y: 705 },
+  { x: 676, y: 765 },
+  { x: 949, y: 694 }
+];
+
+const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
+  1: {
+    subtitle: "Fase 01 - Soma",
+    background: BACKGROUND_CORRUPTED_KEY,
+    robotButtons: [
+      { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "Adicao", x: 40, y: -46 }
+    ],
+    targets: [
+      { output: "Flores", initial: 20, goal: 30 },
+      { output: "Arvores", initial: 10, goal: 50 },
+      { output: "Solo", initial: 0, goal: 30 }
+    ]
+  },
+  2: {
+    subtitle: "Fase 02 - Soma e Divisao",
+    background: BACKGROUND_CORRUPTED_KEY,
+    robotButtons: [
+      { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "Adicao", x: 10, y: -46 },
+      { operation: "divisao", texture: ROBO_DIVISAO_KEY, label: "Divisao", x: 80, y: -46 }
+    ],
+    targets: [
+      { output: "Flores", initial: 30, goal: 20 },
+      { output: "Arvores", initial: 50, goal: 20 },
+      { output: "Solo", initial: 30, goal: 10 }
+    ]
+  }
+};
+
+export class CascataScene extends Phaser.Scene {
+  public currentSubLevel = 1;
+  private readonly biomeId = "level-01";
+
+  private fullscreenRestoredBackground?: Phaser.GameObjects.Image;
+  private fullscreenCorruptedBackground?: Phaser.GameObjects.Image;
+  private topHudContainer!: Phaser.GameObjects.Container;
+  private subtitleText?: Phaser.GameObjects.Text;
+  private panelContainer!: Phaser.GameObjects.Container;
+  private resultText?: Phaser.GameObjects.Text;
+  private nextButton?: Phaser.GameObjects.Image;
+  private homeButton?: Phaser.GameObjects.Image;
+  private ecosystemHealthFill?: Phaser.GameObjects.Graphics;
+  private ecosystemHealthBackground?: Phaser.GameObjects.Graphics;
+  private ecosystemHealthText?: Phaser.GameObjects.Text;
+  private phaseElements = new Map<string, PhaseElementView>();
+  private restoredTopics = new Set<string>();
+  private firstRestoreDecorationShown = false;
+  private slotViews = new Map<string, SlotView>();
+  private slotObjects: Phaser.GameObjects.GameObject[] = [];
+  private robotButtons = new Map<TipoDeOperacaoDaCascata, RobotButtonView>();
+  private unsubscribeStore?: () => void;
+  private panelDynamicObjects: Phaser.GameObjects.GameObject[] = [];
+  private playfieldBounds = new Phaser.Geom.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
+  private slotLayoutBaseWidth = BASE_WIDTH;
+  private slotLayoutBaseHeight = BASE_HEIGHT;
+  private completionRecorded = false;
+  private autoReturnScheduled = false;
+  private autoReturnTimeoutId?: number;
+  private biomeIdInStore = "level-01";
+
+  public constructor() {
+    super("CascataScene");
+  }
+
+  public init(data: CascataSceneData): void {
+    this.resetSceneSessionState();
+    this.currentSubLevel = data.subLevel ?? 1;
+    this.completionRecorded = false;
+    this.autoReturnScheduled = false;
+  }
+
+  public preload(): void {
+    if (!this.textures.exists(LEVEL_PLAQUE_KEY)) {
+      this.load.image(LEVEL_PLAQUE_KEY, LEVEL_PLAQUE_PATH);
+    }
+
+    if (!this.textures.exists(ROBOT_PANEL_KEY)) {
+      this.load.image(ROBOT_PANEL_KEY, ROBOT_PANEL_PATH);
+    }
+
+    if (!this.textures.exists(BACK_BUTTON_KEY)) {
+      this.load.image(BACK_BUTTON_KEY, BACK_BUTTON_PATH);
+    }
+
+    if (!this.textures.exists(BACKGROUND_CORRUPTED_KEY)) {
+      this.load.image(BACKGROUND_CORRUPTED_KEY, BACKGROUND_CORRUPTED_PATH);
+    }
+
+    if (!this.textures.exists(BACKGROUND_RESTORED_KEY)) {
+      this.load.image(BACKGROUND_RESTORED_KEY, BACKGROUND_RESTORED_PATH);
+    }
+
+    if (!this.textures.exists(ROBO_ADICAO_KEY)) {
+      this.load.image(ROBO_ADICAO_KEY, ROBO_ADICAO_PATH);
+    }
+
+    if (!this.textures.exists(ROBO_DIVISAO_KEY)) {
+      this.load.image(ROBO_DIVISAO_KEY, ROBO_DIVISAO_PATH);
+    }
+
+    if (!this.textures.exists(NEXT_BUTTON_KEY)) {
+      this.load.image(NEXT_BUTTON_KEY, NEXT_BUTTON_PATH);
+    }
+
+    if (!this.textures.exists(HOME_BUTTON_KEY)) {
+      this.load.image(HOME_BUTTON_KEY, HOME_BUTTON_PATH);
+    }
+
+    [
+      [FLOR_VIVA_KEY, FLOR_VIVA_PATH],
+      [FLOR_VIVA_2_KEY, FLOR_VIVA_2_PATH],
+      [VASO_FLOR_KEY, VASO_FLOR_PATH],
+      [AGUA_FLOR_KEY, AGUA_FLOR_PATH],
+      [CACHU_LIMPA_KEY, CACHU_LIMPA_PATH],
+      [VASO_SOLO_KEY, VASO_SOLO_PATH],
+      [AGUA_SOLO_KEY, AGUA_SOLO_PATH],
+      [VASO_ARVORE_KEY, VASO_ARVORE_PATH],
+      [AGUA_ARVORE_KEY, AGUA_ARVORE_PATH],
+      [ARVORE_VIVA_1_KEY, ARVORE_VIVA_1_PATH],
+      [ARVORE_VIVA_2_KEY, ARVORE_VIVA_2_PATH],
+      [ARVORE_VIVA_3_KEY, ARVORE_VIVA_3_PATH]
+    ].forEach(([textureKey, path]) => {
+      if (!this.textures.exists(textureKey)) {
+        this.load.image(textureKey, path);
+      }
+    });
+
+    PHASE_ELEMENT_CONFIGS.forEach((config) => {
+      if (!this.textures.exists(config.textureKey)) {
+        this.load.image(config.textureKey, config.path);
+      }
+    });
+  }
+
+  public create(): void {
+    this.createFullscreenBackground();
+    this.createPhaseElements();
+    this.createTopHud();
+    this.createEcosystemHealthBar();
+    this.createRightPanel();
+    this.createFooterMessage();
+    this.createNextButton();
+    this.createHomeButton();
+    this.installInputEvents();
+    this.installStoreSync();
+    this.setupLevel(this.currentSubLevel);
+    this.layoutScene(this.scale.width, this.scale.height);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.autoReturnTimeoutId) {
+        window.clearTimeout(this.autoReturnTimeoutId);
+        this.autoReturnTimeoutId = undefined;
+      }
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+      this.unsubscribeStore?.();
+    });
+  }
+
+  public setupLevel(levelNumber: number): void {
+    const config = SUB_LEVELS[levelNumber];
+    if (!config) {
+      return;
+    }
+
+    this.currentSubLevel = levelNumber;
+    // Inicializa o estado global
+    biomaStoreApi.getState().inicializarNivel(this.biomeIdInStore, config.targets);
+
+    this.clearDynamicLevelObjects();
+
+    this.subtitleText?.setText("Cascata de Dados");
+
+    this.fullscreenCorruptedBackground?.setAlpha(1);
+    this.fullscreenRestoredBackground?.setAlpha(0);
+    this.nextButton?.setVisible(false).disableInteractive();
+    this.nextButton?.setAlpha(0);
+
+    this.createSlotZones();
+    config.robotButtons.forEach((button) => {
+      this.createRobotButton(button.operation, button.x, button.y, button.label, button.texture);
+    });
+
+    this.renderMetaValues(biomaStoreApi.getState().metas);
+    this.resultText?.setText("");
+    this.resultText?.setColor("#fff5cf");
+    this.layoutScene(this.scale.width, this.scale.height);
+  }
+
+  private installStoreSync(): void {
+    // O Phaser agora observa o Zustand. Se o estado mudar, o Phaser reage.
+    this.unsubscribeStore = biomaStoreApi.subscribe(
+      (state) => state.metas,
+      (metas) => {
+        this.renderMetaValues(metas);
+        this.checkWin();
+      }
+    );
+  }
+
+  private createFullscreenBackground(): void {
+    this.fullscreenRestoredBackground = this.add
+      .image(0, 0, BACKGROUND_RESTORED_KEY)
+      .setOrigin(0.5)
+      .setDepth(-21)
+      .setAlpha(0);
+    this.fullscreenCorruptedBackground = this.add
+      .image(0, 0, BACKGROUND_CORRUPTED_KEY)
+      .setOrigin(0.5)
+      .setDepth(-20)
+      .setAlpha(1);
+  }
+
+  private createTopHud(): void {
+    const tituloAlfa = this.add.text(0, 0, "Alfa", {
+      font: "bold 52px Arial",
+      color: "#4CAF50"
+    });
+    tituloAlfa.setStroke("#FFFFFF", 10);
+    tituloAlfa.setShadow(3, 3, "#333333", 3, true, true);
+
+    const tituloMath = this.add.text(tituloAlfa.width - 6, 0, "Math:", {
+      font: "bold 52px Arial",
+      color: "#f59e0b"
+    });
+    tituloMath.setStroke("#FFFFFF", 10);
+    tituloMath.setShadow(3, 3, "#333333", 3, true, true);
+
+    this.subtitleText = this.add.text(8, 48, "Cascata de Dados", {
+      font: "bold 24px Arial",
+      color: "#F2F2F2"
+    });
+    this.subtitleText.setStroke("#000000", 4);
+    this.subtitleText.setShadow(2, 2, "#000000", 1, false, false);
+
+    this.topHudContainer = this.add.container(SIDE_PADDING, TOP_PADDING, [tituloAlfa, tituloMath, this.subtitleText]);
+    this.topHudContainer.setDepth(20);
+  }
+
+  private createPhaseElements(): void {
+    const baseWidth = this.scale.width || BASE_WIDTH;
+    const baseHeight = this.scale.height || BASE_HEIGHT;
+
+    PHASE_ELEMENT_CONFIGS.forEach((config) => {
+      this.createPhaseElementFromConfig(config, baseWidth, baseHeight);
+    });
+  }
+
+  private createPhaseElementFromConfig(
+    config: PhaseElementConfig,
+    baseWidth: number,
+    baseHeight: number,
+    initialAlpha = 1
+  ): Phaser.GameObjects.Image {
+    const image = this.add
+      .image(config.x, config.y, config.textureKey)
+      .setDepth(config.depth ?? -5)
+      .setScale(config.scale ?? 0.2)
+      .setAlpha(initialAlpha);
+    image.setAngle(config.angle ?? 0);
+
+    image.setData("output", config.output);
+    image.setData("restoreTextureKey", config.restoreTextureKey);
+    image.setData("restoreScaleMultiplier", config.restoreScaleMultiplier ?? 1);
+    image.setData("elementId", config.id);
+
+    this.phaseElements.set(config.id, {
+      id: config.id,
+      anchorX: baseWidth > 0 ? config.x / baseWidth : 0,
+      anchorY: baseHeight > 0 ? config.y / baseHeight : 0,
+      image
+    });
+
+    return image;
+  }
+
+  private createEcosystemHealthBar(): void {
+    this.ecosystemHealthBackground = this.add.graphics();
+    this.ecosystemHealthFill = this.add.graphics();
+    this.ecosystemHealthText = this.add.text(0, 0, "0%", {
+      fontFamily: "Arial",
+      fontSize: "28px",
+      fontStyle: "bold",
+      color: "#FFFFFF"
+    });
+    this.ecosystemHealthText.setOrigin(0.5);
+    this.ecosystemHealthText.setStroke("#04130d", 6);
+    this.ecosystemHealthText.setShadow(0, 2, "#7affcd", 10, true, true);
+    this.redrawEcosystemHealthBar(0);
+  }
+
+  private createRightPanel(): void {
+    const background = this.add.image(66, 91, ROBOT_PANEL_KEY).setDisplaySize(396, 495);
+    const title = this.add.text(16, -116, "Robos", {
+      fontFamily: "Georgia",
+      fontSize: "18px",
+      color: "#fff3d4",
+      stroke: "#332110",
+      strokeThickness: 3
+    });
+
+    this.panelContainer = this.add.container(0, 0, [background, title]);
+    this.panelContainer.setScrollFactor(0).setDepth(10);
+
+    this.createResetButton(125, 102);
+  }
+
+  private createFooterMessage(): void {
+    this.resultText = this.add.text(0, 0, "", {
+      fontFamily: "Georgia",
+      fontSize: "13px",
+      color: "#fff2d6",
+      stroke: "#352212",
+      strokeThickness: 2
+    });
+    this.resultText.setDepth(20);
+  }
+
+  private createNextButton(): void {
+    this.nextButton = this.add.image(0, 0, NEXT_BUTTON_KEY).setScale(0.2).setDepth(25).setAlpha(0);
+    this.nextButton.setVisible(false);
+    this.nextButton.setInteractive({ useHandCursor: true });
+    this.nextButton.on("pointerdown", () => {
+      if (this.currentSubLevel === 1) {
+        this.setupLevel(2);
+        return;
+      }
+
+      this.scene.start("GameScene", { levelId: "level-02" });
+    });
+    this.nextButton.disableInteractive();
+  }
+
+  private createHomeButton(): void {
+    this.homeButton = this.add.image(0, 0, HOME_BUTTON_KEY).setScale(0.16).setDepth(25);
+    this.homeButton.setScrollFactor(0);
+    this.homeButton.setInteractive({ useHandCursor: true });
+    this.homeButton.on("pointerdown", () => {
+      this.scene.start("WorldMapScene");
+    });
+  }
+
+  private createSlotZones(): void {
+    this.slotLayoutBaseWidth = this.scale.width;
+    this.slotLayoutBaseHeight = this.scale.height;
+
+    const metas = biomaStoreApi.getState().metas;
+    WATER_SLOTS.forEach((slot, index) => {
+      const meta = metas[index];
+      if (!meta) {
+        return;
+      }
+
+      const plaquePosition = PLAQUE_POSITIONS[index] ?? { x: slot.x, y: slot.y };
+      const slotX = plaquePosition.x;
+      const slotY = plaquePosition.y;
+
+      const zone = this.add
+        .zone(slotX, slotY, SLOT_ZONE_WIDTH, SLOT_ZONE_HEIGHT)
+        .setRectangleDropZone(SLOT_ZONE_WIDTH, SLOT_ZONE_HEIGHT);
+      zone.setData("slotId", slot.id);
+      zone.setDepth(3);
+
+      const plaque = this.add
+        .image(slotX, slotY, LEVEL_PLAQUE_KEY)
+        .setDisplaySize(SLOT_PLAQUE_WIDTH, SLOT_PLAQUE_HEIGHT)
+        .setDepth(1);
+
+      const valueText = this.add.text(slotX, slotY - 16, `${meta.initial}`, {
+        fontFamily: "monospace",
+        fontSize: "24px",
+        color: "#fff5d8",
+        stroke: "#402811",
+        strokeThickness: 3
+      });
+      valueText.setOrigin(0.5);
+      valueText.setDepth(4);
+
+      const meterBackground = this.add
+        .rectangle(slotX, slotY + 2, SLOT_METER_WIDTH, SLOT_METER_HEIGHT, 0x2a1d10, 0.64)
+        .setOrigin(0.5)
+        .setDepth(3);
+
+      const meterFill = this.add
+        .rectangle(slotX - 54, slotY + 2, 0, SLOT_METER_FILL_HEIGHT, 0x76ff03, 1)
+        .setOrigin(0, 0.5)
+        .setDepth(4);
+
+      const progressText = this.add.text(slotX, slotY + 14, `${meta.initial}/${meta.goal}`, {
+        fontFamily: "monospace",
+        fontSize: "16px",
+        color: "#fff7dc",
+        stroke: "#3f2c16",
+        strokeThickness: 3
+      });
+      progressText.setOrigin(0.5);
+      progressText.setDepth(4);
+
+      this.slotViews.set(slot.id, {
+        slot: { ...slot, x: slotX, y: slotY },
+        output: meta.output,
+        anchorX: this.slotLayoutBaseWidth > 0 ? slotX / this.slotLayoutBaseWidth : 0,
+        anchorY: this.slotLayoutBaseHeight > 0 ? slotY / this.slotLayoutBaseHeight : 0,
+        zone,
+        plaque,
+        valueText,
+        progressText,
+        meterBackground,
+        meterFill
+      });
+
+      this.slotObjects.push(zone, plaque, valueText, progressText, meterBackground, meterFill);
+    });
+  }
+
+  private createRobotButton(
+    operation: TipoDeOperacaoDaCascata,
+    localX: number,
+    localY: number,
+    label: string,
+    textureKey: string
+  ): void {
+    const sprite = this.add.image(localX, localY, textureKey).setScale(0.0528);
+    sprite.setData("panelButton", true);
+    sprite.setData("operation", operation);
+    sprite.setData("homeX", localX);
+    sprite.setData("homeY", localY);
+    sprite.setInteractive({ useHandCursor: true, draggable: true });
+
+    const caption = this.add.text(localX, localY + 44, label, {
+      fontFamily: "Georgia",
+      fontSize: "10px",
+      color: "#f4dea0",
+      stroke: "#332110",
+      strokeThickness: 2,
+      align: "center"
+    });
+    caption.setOrigin(0.5);
+
+    this.panelContainer.add([sprite, caption]);
+    this.input.setDraggable(sprite);
+    this.robotButtons.set(operation, { operation, sprite, label: caption, homeX: localX, homeY: localY });
+    this.panelDynamicObjects.push(sprite, caption);
+  }
+
+  private createResetButton(localX: number, localY: number): void {
+    const resetButton = this.add.image(localX, localY, BACK_BUTTON_KEY).setScale(0.08);
+    resetButton.setInteractive({ useHandCursor: true });
+    resetButton.on("pointerdown", () => {
+      this.handleReset();
+    });
+    this.panelContainer.add(resetButton);
+  }
+
+  private installInputEvents(): void {
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      console.log(`x = ${Math.round(pointer.x)}, y = ${Math.round(pointer.y)}`);
+    });
+
+    this.input.on(
+      Phaser.Input.Events.GAMEOBJECT_OVER,
+      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+        return;
+      }
+
+      gameObject.setScale(0.0594);
+      gameObject.setTint(0xffffff);
+      }
+    );
+
+    this.input.on(
+      Phaser.Input.Events.GAMEOBJECT_OUT,
+      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+        return;
+      }
+
+      gameObject.setScale(0.0528);
+      gameObject.clearTint();
+      }
+    );
+
+    this.input.on(
+      Phaser.Input.Events.GAMEOBJECT_DOWN,
+      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+        return;
+      }
+
+      gameObject.setTint(0xffffff);
+      gameObject.setScale(0.0638);
+      this.resultText?.setText("Arrastando robo. Solte sobre uma nascente.");
+      }
+    );
+
+    this.input.on(
+      Phaser.Input.Events.DRAG_START,
+      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+        if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+          return;
+        }
+
+        gameObject.setDepth(50);
+      }
+    );
+
+    this.input.on(
+      Phaser.Input.Events.DRAG,
+      (
+        _pointer: Phaser.Input.Pointer,
+        gameObject: Phaser.GameObjects.GameObject,
+        dragX: number,
+        dragY: number
+      ) => {
+        if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+          return;
+        }
+
+        gameObject.x = dragX;
+        gameObject.y = dragY;
+      }
+    );
+
+    this.input.on(
+      Phaser.Input.Events.DROP,
+      (
+        _pointer: Phaser.Input.Pointer,
+        gameObject: Phaser.GameObjects.GameObject,
+        dropZone: Phaser.GameObjects.Zone
+      ) => {
+        if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+          return;
+        }
+
+        const operation = gameObject.getData("operation") as TipoDeOperacaoDaCascata;
+        const slotId = dropZone.getData("slotId") as string;
+        this.handleRobotDrop(operation, slotId);
+      }
+    );
+
+    this.input.on(
+      Phaser.Input.Events.DRAG_END,
+      (
+        _pointer: Phaser.Input.Pointer,
+        gameObject: Phaser.GameObjects.GameObject,
+        dropped: boolean
+      ) => {
+        if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
+          return;
+        }
+
+        const operation = gameObject.getData("operation") as TipoDeOperacaoDaCascata;
+        const button = this.robotButtons.get(operation);
+        if (!button) {
+          return;
+        }
+
+        this.tweens.add({
+          targets: gameObject,
+          x: button.homeX,
+          y: button.homeY,
+          duration: dropped ? 120 : 180,
+          ease: "Sine.Out",
+          onComplete: () => {
+            gameObject.setScale(0.0528);
+            gameObject.clearTint();
+            gameObject.setDepth(11);
+          }
+        });
+      }
+    );
+  }
+
+  private handleRobotDrop(operation: TipoDeOperacaoDaCascata, slotId: string): void {
+    const slotView = this.slotViews.get(slotId);
+    if (!slotView) {
+      return;
+    }
+
+    const currentMetas = biomaStoreApi.getState().metas;
+    const updatedOutputs: Record<string, number> = {};
+    
+    currentMetas.forEach(m => {
+      updatedOutputs[m.output] = m.output === slotView.output 
+        ? this.applyOperation(m.current, operation) 
+        : m.current;
+    });
+
+    biomaStoreApi.getState().atualizarProgresso(updatedOutputs);
+  }
+
+  private checkWin(): void {
+    const metas = biomaStoreApi.getState().metas;
+    const venceu = metas.length > 0 && metas.every((meta) => meta.current === meta.goal);
+    if (!venceu) {
+      return;
+    }
+
+    this.resultText?.setColor("#bbf7d0");
+    this.resultText?.setText(
+      this.currentSubLevel === 1
+        ? "Subnivel 1 concluido. Retornando ao mundo..."
+        : "Cascata concluida. Clique em Next para voltar ao mapa."
+    );
+
+    if (this.currentSubLevel === 1) {
+      this.markBiomeAsCompleted();
+      this.scheduleAutoReturnToWorld(this.getPendingRestoreDuration() + 3000);
+      return;
+    }
+
+    if (this.currentSubLevel === 2) {
+      this.markBiomeAsCompleted();
+    }
+
+    this.playRestoreTransition();
+  }
+
+  private markBiomeAsCompleted(): void {
+    if (this.completionRecorded) {
+      return;
+    }
+
+    const store = biomaStoreApi.getState();
+    if (!store.biomasConcluidos.includes(this.biomeId)) {
+      biomaStoreApi.getState().concluirRestauracao(this.biomeId);
+    }
+
+    this.completionRecorded = true;
+  }
+
+  private renderMetaValues(metas: MetaDeBioma[]): void {
+    let desafiosConcluidos = 0;
+
+    metas.forEach((meta) => {
+      const slotView = [...this.slotViews.values()].find((slot) => slot.output === meta.output);
+      if (!slotView) {
+        return;
+      }
+
+      const progresso = this.calcularProgresso(meta);
+      const alvoConcluido = meta.current === meta.goal;
+
+      slotView.valueText.setText(String(meta.current));
+      slotView.progressText.setText(`${meta.current}/${meta.goal}`);
+      slotView.valueText.setColor(alvoConcluido ? "#bbf7d0" : "#fff5cf");
+      slotView.meterFill.width = SLOT_METER_FILL_WIDTH * progresso;
+      slotView.meterFill.setFillStyle(alvoConcluido ? 0x86efac : 0x76ff03, 1);
+
+      if (alvoConcluido) {
+        this.restoreTopic(meta.output);
+        desafiosConcluidos += 1;
+      }
+    });
+
+    const healthPercent = metas.length > 0 ? Math.round((desafiosConcluidos / metas.length) * 100) : 0;
+    this.redrawEcosystemHealthBar(healthPercent);
+  }
+
+  private calcularProgresso(meta: MetaDeBioma): number {
+    const distanciaInicial = Math.abs(meta.initial - meta.goal);
+    if (distanciaInicial === 0) {
+      return 1;
+    }
+
+    const distanciaAtual = Math.abs(meta.current - meta.goal);
+    return Phaser.Math.Clamp(1 - distanciaAtual / distanciaInicial, 0, 1);
+  }
+
+  private applyOperation(value: number, operation: TipoDeOperacaoDaCascata): number {
+    return operation === "adicao" ? value + 10 : Math.floor(value / 2);
+  }
+
+  private resetSceneSessionState(): void {
+    if (this.autoReturnTimeoutId) {
+      window.clearTimeout(this.autoReturnTimeoutId);
+      this.autoReturnTimeoutId = undefined;
+    }
+
+    this.phaseElements.clear();
+    this.restoredTopics.clear();
+    this.firstRestoreDecorationShown = false;
+    this.slotViews.clear();
+    this.slotObjects = [];
+    this.robotButtons.clear();
+    this.panelDynamicObjects = [];
+  }
+
+  private restoreTopic(output: string): void {
+    if (this.restoredTopics.has(output)) {
+      return;
+    }
+
+    this.restoredTopics.add(output);
+
+    if (!this.firstRestoreDecorationShown && !this.phaseElements.has("cachu_limpa")) {
+      const baseWidth = this.scale.width || BASE_WIDTH;
+      const baseHeight = this.scale.height || BASE_HEIGHT;
+      this.time.addEvent({
+        delay: 400,
+        callback: () => {
+          if (this.phaseElements.has("cachu_limpa")) {
+            return;
+          }
+
+          const image = this.createPhaseElementFromConfig(
+            {
+              id: "cachu_limpa",
+              textureKey: CACHU_LIMPA_KEY,
+              path: CACHU_LIMPA_PATH,
+              x: 863,
+              y: 128,
+              scale: 0.6,
+              depth: -2
+            },
+            baseWidth,
+            baseHeight,
+            0
+          );
+          this.tweens.add({
+            targets: image,
+            alpha: 1,
+            duration: 300,
+            ease: "Sine.Out"
+          });
+          this.playRestorePop(image);
+        }
+      });
+      this.firstRestoreDecorationShown = true;
+    }
+
+    const deadSprites = [...this.phaseElements.values()]
+      .filter((element) => element.image.getData("output") === output && element.image.getData("restoreTextureKey"))
+      .map((element) => element.image);
+
+    deadSprites.forEach((deadSprite, index) => {
+      this.time.addEvent({
+        delay: (index + 1) * 400,
+        callback: () => {
+          if (!deadSprite.scene) {
+            return;
+          }
+
+          this.restoreElement(deadSprite);
+        }
+      });
+    });
+
+    const supportConfigs = RESTORE_SUPPORT_CONFIGS[output] ?? [];
+    const baseWidth = this.scale.width || BASE_WIDTH;
+    const baseHeight = this.scale.height || BASE_HEIGHT;
+
+    supportConfigs.forEach((config, index) => {
+      this.time.addEvent({
+        delay: (deadSprites.length + index + 1) * 400,
+        callback: () => {
+          if (this.phaseElements.has(config.id)) {
+            return;
+          }
+
+          const image = this.createPhaseElementFromConfig(config, baseWidth, baseHeight, 0);
+          this.tweens.add({
+            targets: image,
+            alpha: 1,
+            duration: 300,
+            ease: "Sine.Out"
+          });
+          this.playRestorePop(image);
+        }
+      });
+    });
+  }
+
+  private restoreElement(deadSprite: Phaser.GameObjects.Image): void {
+    const restoreTextureKey = deadSprite.getData("restoreTextureKey") as string | undefined;
+    const restoreScaleMultiplier = (deadSprite.getData("restoreScaleMultiplier") as number | undefined) ?? 1;
+    const elementId = deadSprite.getData("elementId") as string | undefined;
+    if (!restoreTextureKey || !elementId) {
+      return;
+    }
+
+    const currentView = this.phaseElements.get(elementId);
+    if (!currentView) {
+      return;
+    }
+
+    const liveSprite = this.add.image(deadSprite.x, deadSprite.y, restoreTextureKey);
+    liveSprite.setScale(deadSprite.scaleX * restoreScaleMultiplier, deadSprite.scaleY * restoreScaleMultiplier);
+    liveSprite.setAngle(deadSprite.angle);
+    liveSprite.rotation = deadSprite.rotation;
+    liveSprite.setOrigin(deadSprite.originX, deadSprite.originY);
+    liveSprite.setDepth(restoreTextureKey === ARVORE_VIVA_1_KEY ? 30 : deadSprite.depth);
+    liveSprite.setAlpha(0);
+    liveSprite.setDataEnabled();
+    liveSprite.setData("output", deadSprite.getData("output"));
+    liveSprite.setData("restoreTextureKey", restoreTextureKey);
+    liveSprite.setData("restoreScaleMultiplier", restoreScaleMultiplier);
+    liveSprite.setData("elementId", elementId);
+
+    deadSprite.destroy();
+
+    currentView.image = liveSprite;
+
+    this.tweens.add({
+      targets: liveSprite,
+      alpha: 1,
+      duration: 300,
+      ease: "Sine.Out"
+    });
+    this.playRestorePop(liveSprite);
+  }
+
+  private playRestorePop(target: Phaser.GameObjects.Image): void {
+    const originalScaleX = target.scaleX;
+    const originalScaleY = target.scaleY;
+
+    this.tweens.add({
+      targets: target,
+      scaleX: originalScaleX * 1.12,
+      scaleY: originalScaleY * 1.12,
+      duration: 100,
+      yoyo: true,
+      ease: "Sine.Out"
+    });
+  }
+
+  private handleReset(): void {
+    this.scene.restart({ subLevel: this.currentSubLevel });
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.layoutScene(gameSize.width, gameSize.height);
+  }
+
+  private layoutScene(width: number, height: number): void {
+    this.playfieldBounds = this.computePlayfieldBounds(width, height);
+    this.layoutFullscreenBackground(width, height);
+    this.topHudContainer.setPosition(SIDE_PADDING, TOP_PADDING);
+
+    const panelX = width - SIDE_PADDING - PANEL_WIDTH;
+    const panelY = Math.max(PLAYFIELD_TOP_OFFSET + 4, this.playfieldBounds.centerY - PANEL_HEIGHT / 2);
+    this.panelContainer.setPosition(panelX, panelY);
+
+    if (this.resultText) {
+      this.resultText.setPosition(SIDE_PADDING, TOP_PADDING + 70);
+    }
+
+    this.nextButton?.setPosition(width - SIDE_PADDING - 36, height - BOTTOM_PADDING - 36);
+    this.homeButton?.setPosition(SIDE_PADDING + 36, height - BOTTOM_PADDING - 36);
+
+    this.layoutPhaseElements();
+    this.layoutSlotZones();
+    this.redrawEcosystemHealthBar(this.getCurrentEcosystemHealth());
+  }
+
+  private layoutPhaseElements(): void {
+    this.phaseElements.forEach((element) => {
+      element.image.setPosition(this.scale.width * element.anchorX, this.scale.height * element.anchorY);
+    });
+  }
+
+  private layoutSlotZones(): void {
+    this.slotViews.forEach((slotView) => {
+      const slotX = this.scale.width * slotView.anchorX;
+      const slotY = this.scale.height * slotView.anchorY;
+      slotView.slot.x = slotX;
+      slotView.slot.y = slotY;
+
+      slotView.zone.setSize(SLOT_ZONE_WIDTH, SLOT_ZONE_HEIGHT);
+      slotView.zone.setRectangleDropZone(SLOT_ZONE_WIDTH, SLOT_ZONE_HEIGHT);
+      slotView.zone.setPosition(slotX, slotY);
+      slotView.plaque.setPosition(slotX, slotY);
+      slotView.plaque.setDisplaySize(SLOT_PLAQUE_WIDTH, SLOT_PLAQUE_HEIGHT);
+      slotView.progressText.setPosition(slotX, slotY + 14);
+      slotView.progressText.setFontSize(16);
+      slotView.meterBackground.setPosition(slotX, slotY + 2);
+      slotView.meterBackground.setDisplaySize(SLOT_METER_WIDTH, SLOT_METER_HEIGHT);
+      slotView.meterFill.setPosition(slotX - 54, slotY + 2);
+      slotView.meterFill.height = SLOT_METER_FILL_HEIGHT;
+      slotView.valueText.setPosition(slotX, slotY - 16);
+      slotView.valueText.setFontSize(24);
+    });
+  }
+
+  private getCurrentEcosystemHealth(): number {
+    const metas = biomaStoreApi.getState().metas;
+    if (metas.length === 0) {
+      return 0;
+    }
+
+    const concluidos = metas.filter((meta) => meta.current === meta.goal).length;
+    return Math.round((concluidos / this.metas.length) * 100);
+  }
+
+  private redrawEcosystemHealthBar(ecosystemHealth: number): void {
+    if (!this.ecosystemHealthBackground || !this.ecosystemHealthFill || !this.ecosystemHealthText) {
+      return;
+    }
+
+    const progress = Phaser.Math.Clamp(ecosystemHealth / 100, 0, 1);
+    const x = this.scale.width - SIDE_PADDING - HEALTH_RING_RADIUS - 22;
+    const y = TOP_PADDING + HEALTH_RING_RADIUS + 14;
+    const startAngle = Phaser.Math.DegToRad(-90);
+    const endAngle = startAngle + Phaser.Math.PI2 * progress;
+
+    this.ecosystemHealthBackground.clear();
+    this.ecosystemHealthBackground.fillStyle(0x050b10, 0.88);
+    this.ecosystemHealthBackground.fillCircle(x, y, HEALTH_RING_RADIUS + 16);
+    this.ecosystemHealthBackground.fillStyle(0x0a1d20, 0.96);
+    this.ecosystemHealthBackground.fillCircle(x, y, HEALTH_RING_RADIUS + 4);
+    this.ecosystemHealthBackground.lineStyle(HEALTH_RING_THICKNESS + 8, 0x7affc8, 0.1);
+    this.ecosystemHealthBackground.strokeCircle(x, y, HEALTH_RING_RADIUS);
+    this.ecosystemHealthBackground.lineStyle(HEALTH_RING_THICKNESS + 2, 0x142730, 0.92);
+    this.ecosystemHealthBackground.strokeCircle(x, y, HEALTH_RING_RADIUS);
+
+    this.ecosystemHealthFill.clear();
+    if (progress > 0) {
+      this.ecosystemHealthFill.lineStyle(HEALTH_RING_THICKNESS + 12, 0x54ffd1, 0.14);
+      this.ecosystemHealthFill.beginPath();
+      this.ecosystemHealthFill.arc(x, y, HEALTH_RING_RADIUS, startAngle, endAngle, false);
+      this.ecosystemHealthFill.strokePath();
+
+      this.ecosystemHealthFill.lineStyle(HEALTH_RING_THICKNESS + 6, 0x42ffd1, 0.22);
+      this.ecosystemHealthFill.beginPath();
+      this.ecosystemHealthFill.arc(x, y, HEALTH_RING_RADIUS, startAngle, endAngle, false);
+      this.ecosystemHealthFill.strokePath();
+
+      this.ecosystemHealthFill.lineStyle(HEALTH_RING_THICKNESS, 0x47ffd0, 0.98);
+      this.ecosystemHealthFill.beginPath();
+      this.ecosystemHealthFill.arc(x, y, HEALTH_RING_RADIUS, startAngle, endAngle, false);
+      this.ecosystemHealthFill.strokePath();
+    }
+
+    this.ecosystemHealthText.setPosition(x, y);
+    this.ecosystemHealthText.setText(`${ecosystemHealth}%`);
+    this.ecosystemHealthBackground.setDepth(20);
+    this.ecosystemHealthFill.setDepth(20);
+    this.ecosystemHealthText.setDepth(20);
+  }
+
+  private layoutFullscreenBackground(width: number, height: number): void {
+    if (!this.fullscreenCorruptedBackground || !this.fullscreenRestoredBackground) {
+      return;
+    }
+
+    const source = this.fullscreenCorruptedBackground.texture.getSourceImage() as { width?: number; height?: number };
+    const sourceWidth = source.width ?? BASE_WIDTH;
+    const sourceHeight = source.height ?? BASE_HEIGHT;
+    const scale = Math.max(width / sourceWidth, height / sourceHeight);
+
+    this.fullscreenCorruptedBackground.setPosition(width / 2, height / 2);
+    this.fullscreenCorruptedBackground.setDisplaySize(sourceWidth * scale, sourceHeight * scale);
+    this.fullscreenRestoredBackground.setPosition(width / 2, height / 2);
+    this.fullscreenRestoredBackground.setDisplaySize(sourceWidth * scale, sourceHeight * scale);
+  }
+
+  private computePlayfieldBounds(width: number, height: number): Phaser.Geom.Rectangle {
+    const availableWidth = Math.max(280, width - PLAYFIELD_SIDE_MARGIN * 2);
+    const availableHeight = Math.max(240, height - PLAYFIELD_TOP_OFFSET - BOTTOM_PADDING);
+    const scale = Math.min(availableWidth / BASE_WIDTH, availableHeight / BASE_HEIGHT);
+    const playfieldWidth = BASE_WIDTH * scale;
+    const playfieldHeight = BASE_HEIGHT * scale;
+    const x = (width - playfieldWidth) / 2;
+    const y = PLAYFIELD_TOP_OFFSET + (availableHeight - playfieldHeight) / 2;
+
+    return new Phaser.Geom.Rectangle(x, y, playfieldWidth, playfieldHeight);
+  }
+
+  private clearDynamicLevelObjects(): void {
+    this.slotObjects.forEach((object) => object.destroy());
+    this.slotObjects = [];
+    this.slotViews.clear();
+
+    this.panelDynamicObjects.forEach((object) => object.destroy());
+    this.panelDynamicObjects = [];
+    this.robotButtons.clear();
+  }
+
+  private playRestoreTransition(): void {
+    if (!this.nextButton) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.nextButton);
+    this.nextButton.setVisible(true).setAlpha(0);
+    this.tweens.add({
+      targets: this.nextButton,
+      alpha: 1,
+      duration: 280,
+      delay: 650,
+      ease: "Sine.Out",
+      onComplete: () => {
+        this.nextButton?.setInteractive({ useHandCursor: true });
+      }
+    });
+  }
+
+  private getPendingRestoreDuration(): number {
+    let pendingDuration = 0;
+    const metas = biomaStoreApi.getState().metas;
+
+    if (!this.firstRestoreDecorationShown && !this.phaseElements.has("cachu_limpa")) {
+      pendingDuration = Math.max(pendingDuration, 700);
+    }
+
+    metas.forEach((meta) => {
+      if (meta.current !== meta.goal) {
+        return;
+      }
+
+      const deadSpritesCount = [...this.phaseElements.values()].filter(
+        (element) => element.image.getData("output") === meta.output && element.image.getData("restoreTextureKey")
+      ).length;
+      const missingSupportCount = (RESTORE_SUPPORT_CONFIGS[meta.output] ?? []).filter(
+        (config) => !this.phaseElements.has(config.id)
+      ).length;
+      const totalSteps = deadSpritesCount + missingSupportCount;
+
+      if (totalSteps > 0) {
+        pendingDuration = Math.max(pendingDuration, totalSteps * 400 + 300);
+      }
+    });
+
+    return pendingDuration;
+  }
+
+  private scheduleAutoReturnToWorld(delayMs: number): void {
+    if (this.autoReturnScheduled) {
+      return;
+    }
+
+    this.autoReturnScheduled = true;
+    this.nextButton?.setVisible(false).disableInteractive();
+    this.homeButton?.disableInteractive();
+
+    this.autoReturnTimeoutId = window.setTimeout(() => {
+      this.autoReturnTimeoutId = undefined;
+      this.scene.start("WorldMapScene");
+    }, delayMs);
+  }
+}
