@@ -1173,10 +1173,11 @@ export class CascataScene extends Phaser.Scene {
   private createRobotPresentation(config: RobotIntroConfig): void {
     this.clearRobotIntroduction();
 
+    const isBuilderIntro = config.level === 1;
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2 - 96;
     const panelWidth = Math.min(this.scale.width - 180, 1120);
-    const panelHeight = config.level === 1 ? 610 : 540;
+    const panelHeight = isBuilderIntro ? 610 : 540;
     const panelX = centerX - panelWidth / 2;
     const panelY = centerY - 150;
     const closeButtonSize = 44;
@@ -1199,42 +1200,93 @@ export class CascataScene extends Phaser.Scene {
     readabilityPanel.lineStyle(2, config.accentColor, 0.32);
     readabilityPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 26);
 
-    const robot = this.add.image(centerX, panelY - 24, config.textureKey);
-    robot.setDepth(84).setScrollFactor(0).setAlpha(0).setScale(0.56);
+    const robotY = isBuilderIntro ? panelY + 42 : panelY - 24;
+    const robot = this.add.image(centerX, robotY, config.textureKey);
+    robot.setDepth(84).setScrollFactor(0).setAlpha(0).setScale(isBuilderIntro ? 0.52 : 0.56);
 
-    const nameText = this.add.text(centerX, panelY + 184, config.name, {
+    const nameText = this.add.text(centerX, isBuilderIntro ? panelY + 190 : panelY + 184, config.name, {
       fontFamily: "Georgia",
-      fontSize: "42px",
+      fontSize: isBuilderIntro ? "44px" : "42px",
       fontStyle: "bold",
-      color: "#102033",
+      color: isBuilderIntro ? "#102033" : "#102033",
       align: "center"
     });
     nameText.setOrigin(0.5).setDepth(85).setScrollFactor(0).setAlpha(0);
-    nameText.setStroke("#ffffff", 4);
-    nameText.setShadow(0, 2, "#ffffff", 8, true, true);
+    nameText.setStroke("#ffffff", isBuilderIntro ? 5 : 4);
+    nameText.setShadow(0, 0, "#7df7ff", isBuilderIntro ? 12 : 8, true, true);
 
-    const bodyText = this.add.text(centerX, panelY + 218, this.getRobotIntroBodyText(config), {
-      fontFamily: "Georgia",
-      fontSize: config.level === 1 ? "24px" : "26px",
-      color: "#172033",
-      align: "center",
-      lineSpacing: config.level === 1 ? 4 : 6,
-      wordWrap: { width: panelWidth - 120 }
-    });
+    const textWidth = panelWidth - 130;
+    const bodyText = this.add.text(
+      centerX,
+      isBuilderIntro ? panelY + 250 : panelY + 218,
+      isBuilderIntro
+        ? "O Buggie corrompeu os fluxos da Cascata de Dados."
+        : this.getRobotIntroBodyText(config),
+      {
+        fontFamily: "Georgia",
+        fontSize: isBuilderIntro ? "25px" : "26px",
+        color: "#172033",
+        align: "center",
+        lineSpacing: isBuilderIntro ? 7 : 6,
+        wordWrap: { width: textWidth }
+      }
+    );
     bodyText.setOrigin(0.5, 0).setDepth(85).setScrollFactor(0).setAlpha(0);
     bodyText.setStroke("#ffffff", 3);
-    bodyText.setShadow(0, 2, "#ffffff", 6, true, true);
 
-    const moduleText = this.add.text(centerX, panelY + panelHeight - 64, config.moduleText, {
+    const highlightTexts: Phaser.GameObjects.Text[] = [];
+    if (isBuilderIntro) {
+      const hopeText = this.add.text(centerX, panelY + 314, "Mas ainda existe esperança.", {
+        fontFamily: "Georgia",
+        fontSize: "29px",
+        fontStyle: "bold",
+        color: "#0f4865",
+        align: "center",
+        wordWrap: { width: textWidth }
+      });
+      hopeText.setOrigin(0.5, 0).setDepth(85).setScrollFactor(0).setAlpha(0);
+      hopeText.setStroke("#ffffff", 3);
+
+      const restoreText = this.add.text(
+        centerX,
+        panelY + 362,
+        "Cada conexão restaurada devolve vida ao mundo.\nCom lógica e energia, podemos reconstruir os ecossistemas digitais.",
+        {
+          fontFamily: "Georgia",
+          fontSize: "24px",
+          color: "#172033",
+          align: "center",
+          lineSpacing: 8,
+          wordWrap: { width: textWidth }
+        }
+      );
+      restoreText.setOrigin(0.5, 0).setDepth(85).setScrollFactor(0).setAlpha(0);
+      restoreText.setStroke("#ffffff", 3);
+
+      const buildText = this.add.text(centerX, panelY + 456, "Somar é o primeiro passo para construir.", {
+        fontFamily: "Georgia",
+        fontSize: "28px",
+        fontStyle: "bold",
+        color: "#775115",
+        align: "center",
+        wordWrap: { width: textWidth }
+      });
+      buildText.setOrigin(0.5, 0).setDepth(85).setScrollFactor(0).setAlpha(0);
+      buildText.setStroke("#ffffff", 3);
+
+      highlightTexts.push(hopeText, restoreText, buildText);
+    }
+
+    const moduleText = this.add.text(centerX, panelY + panelHeight - (isBuilderIntro ? 58 : 64), config.moduleText, {
       fontFamily: "Georgia",
-      fontSize: "28px",
+      fontSize: isBuilderIntro ? "32px" : "28px",
       fontStyle: "bold",
-      color: "#0f4865",
+      color: isBuilderIntro ? "#0f4865" : "#0f4865",
       align: "center"
     });
     moduleText.setOrigin(0.5).setDepth(85).setScrollFactor(0).setAlpha(0);
-    moduleText.setStroke("#ffffff", 4);
-    moduleText.setShadow(0, 0, "#bff7ff", 12, true, true);
+    moduleText.setStroke("#ffffff", isBuilderIntro ? 5 : 4);
+    moduleText.setShadow(0, 0, "#bff7ff", isBuilderIntro ? 16 : 12, true, true);
 
     const closeButton = this.add.graphics();
     closeButton.setDepth(86).setScrollFactor(0).setAlpha(0);
@@ -1260,8 +1312,8 @@ export class CascataScene extends Phaser.Scene {
       this.startGameplay();
     });
 
-    this.robotIntroObjects.push(overlay, vignette, glow, accentGlow, readabilityPanel, robot, nameText, bodyText, moduleText, closeButton, closeIcon, closeZone);
-    this.playRobotEffects(config, { overlay, vignette, glow, accentGlow, readabilityPanel, robot, nameText, bodyText, moduleText, closeButton, closeIcon });
+    this.robotIntroObjects.push(overlay, vignette, glow, accentGlow, readabilityPanel, robot, nameText, bodyText, ...highlightTexts, moduleText, closeButton, closeIcon, closeZone);
+    this.playRobotEffects(config, { overlay, vignette, glow, accentGlow, readabilityPanel, robot, nameText, bodyText, highlightTexts, moduleText, closeButton, closeIcon });
   }
 
   private playRobotEffects(
@@ -1275,6 +1327,7 @@ export class CascataScene extends Phaser.Scene {
       robot: Phaser.GameObjects.Image;
       nameText: Phaser.GameObjects.Text;
       bodyText: Phaser.GameObjects.Text;
+      highlightTexts: Phaser.GameObjects.Text[];
       moduleText: Phaser.GameObjects.Text;
       closeButton: Phaser.GameObjects.Graphics;
       closeIcon: Phaser.GameObjects.Text;
@@ -1328,16 +1381,16 @@ export class CascataScene extends Phaser.Scene {
     this.tweens.add({
       targets: objects.robot,
       alpha: 1,
-      scaleX: 0.72,
-      scaleY: 0.72,
-      y: objects.robot.y - 28,
+      scaleX: config.level === 1 ? 0.66 : 0.72,
+      scaleY: config.level === 1 ? 0.66 : 0.72,
+      y: objects.robot.y - (config.level === 1 ? 14 : 28),
       duration: 980,
       ease: "Back.Out"
     });
 
     this.tweens.add({
       targets: objects.robot,
-      y: "-=10",
+      y: config.level === 1 ? "-=6" : "-=10",
       angle: config.level === 4 ? 2 : 1.2,
       duration: 1450,
       yoyo: true,
@@ -1353,6 +1406,14 @@ export class CascataScene extends Phaser.Scene {
     this.time.delayedCall(1300, () => {
       this.tweens.add({ targets: objects.bodyText, alpha: 1, y: objects.bodyText.y - 8, duration: 620, ease: "Sine.Out" });
     });
+
+    if (objects.highlightTexts.length > 0) {
+      objects.highlightTexts.forEach((text, index) => {
+        this.time.delayedCall(1650 + index * 260, () => {
+          this.tweens.add({ targets: text, alpha: 1, y: text.y - 8, duration: 620, ease: "Sine.Out" });
+        });
+      });
+    }
 
     this.time.delayedCall(config.level === 1 ? 3300 : 2600, () => {
       this.tweens.add({ targets: objects.moduleText, alpha: 1, scaleX: { from: 0.96, to: 1 }, scaleY: { from: 0.96, to: 1 }, duration: 540, ease: "Sine.Out" });

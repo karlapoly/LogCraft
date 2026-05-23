@@ -1,18 +1,31 @@
 import { useEffect, useRef } from "react";
-import Phaser from "phaser";
-import { createGameConfig } from "../game/createGameConfig";
+import type Phaser from "phaser";
 
 export function PhaserCanvas() {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!mountRef.current) {
+    const mountElement = mountRef.current;
+    if (!mountElement) {
       return;
     }
 
-    const game = new Phaser.Game(createGameConfig(mountRef.current));
+    let game: Phaser.Game | undefined;
+    let isDisposed = false;
+
+    void Promise.all([import("phaser"), import("../game/createGameConfig")]).then(
+      ([{ default: Phaser }, { createGameConfig }]) => {
+        if (isDisposed) {
+          return;
+        }
+
+        game = new Phaser.Game(createGameConfig(mountElement));
+      }
+    );
+
     return () => {
-      game.destroy(true);
+      isDisposed = true;
+      game?.destroy(true);
     };
   }, []);
 

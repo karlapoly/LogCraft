@@ -17,17 +17,16 @@ export const ROBOT_INTRO_CONFIGS: Record<number, RobotIntroConfig> = {
     textureKey: "cascata-robo-adicao",
     name: "CONSTRUTOR",
     moduleText: "MÓDULO DE ADIÇÃO LIBERADO",
-    color: 0x76ff80,
-    accentColor: 0xf2c45d,
+    color: 0x38e8ff,
+    accentColor: 0x7df7ff,
     specialOpening: [
-      "Você conseguiu chegar...",
-      "O Buggie corrompeu os fluxos dos ecossistemas digitais.",
+      "O Buggie corrompeu os fluxos da Cascata de Dados.",
       "Mas ainda existe esperança.",
-      "Com a lógica certa, podemos restaurar este mundo."
+      "Cada conexão restaurada devolve vida ao mundo.",
+      "Com lógica e energia, podemos reconstruir os ecossistemas digitais."
     ],
     lines: [
-      "Somar é construir.",
-      "Toda restauração começa por pequenas conexões."
+      "Somar é o primeiro passo para construir."
     ]
   },
   2: {

@@ -1,31 +1,40 @@
 import { useEffect, useRef } from "react";
-import Phaser from "phaser";
-import { createGameConfig } from "../game/createGameConfig";
+import type Phaser from "phaser";
 
 export function PhaserGameHost() {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!mountRef.current) {
+    const mountElement = mountRef.current;
+    if (!mountElement) {
       return;
     }
 
-    const syncViewportSize = () => {
-      if (!mountRef.current) {
-        return;
-      }
+    let game: Phaser.Game | undefined;
+    let isDisposed = false;
 
-      mountRef.current.style.width = `${window.innerWidth}px`;
-      mountRef.current.style.height = `${window.innerHeight}px`;
+    const syncViewportSize = () => {
+      mountElement.style.width = `${window.innerWidth}px`;
+      mountElement.style.height = `${window.innerHeight}px`;
     };
 
     syncViewportSize();
-    const game = new Phaser.Game(createGameConfig(mountRef.current));
     window.addEventListener("resize", syncViewportSize);
 
+    void Promise.all([import("phaser"), import("../game/createGameConfig")]).then(
+      ([{ default: Phaser }, { createGameConfig }]) => {
+        if (isDisposed) {
+          return;
+        }
+
+        game = new Phaser.Game(createGameConfig(mountElement));
+      }
+    );
+
     return () => {
+      isDisposed = true;
       window.removeEventListener("resize", syncViewportSize);
-      game.destroy(true);
+      game?.destroy(true);
     };
   }, []);
 
