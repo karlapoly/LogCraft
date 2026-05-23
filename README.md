@@ -14,15 +14,6 @@ O jogador deve restaurar os ecossistemas utilizando lógica, operações matemá
 - Incentivar resolução de problemas
 - Aprender através de debugging e experimentação
 
-## Robôs-Guia
-
-| Robô | Operação |
-|---|---|
-| Construtor | Adição |
-| Analista | Subtração |
-| Otimizador | Multiplicação |
-| Distribuidor | Divisão |
-
 ## Primeiro Mundo
 
 ### Cascata de Dados
