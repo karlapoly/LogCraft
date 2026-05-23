@@ -13,16 +13,7 @@ O jogador deve restaurar os ecossistemas utilizando lógica, operações matemá
 - Trabalhar pensamento computacional
 - Incentivar resolução de problemas
 - Aprender através de debugging e experimentação
-
-## Primeiro Mundo
-
-### Cascata de Dados
-Ecossistema focado em:
-- restauração ambiental;
-- fluxo de energia;
-- lógica matemática;
-- sistemas digitais.
-
+  
 ## Tecnologias
 
 - Phaser 3
