@@ -35,5 +35,5 @@ npm run build
 ```
 
 Projeto alinhado à:
-- BNCC Matemática
+- BNCC / Matemática
 - BNCC Computação
