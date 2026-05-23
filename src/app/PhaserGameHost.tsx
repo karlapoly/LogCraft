@@ -14,8 +14,8 @@ export function PhaserGameHost() {
     let isDisposed = false;
 
     const syncViewportSize = () => {
-      mountElement.style.width = `${window.innerWidth}px`;
-      mountElement.style.height = `${window.innerHeight}px`;
+      mountElement.style.width = "100vw";
+      mountElement.style.height = "100vh";
     };
 
     syncViewportSize();

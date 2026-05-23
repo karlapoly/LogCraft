@@ -10,6 +10,9 @@ export function PhaserCanvas() {
       return;
     }
 
+    mountElement.style.width = "100vw";
+    mountElement.style.height = "100vh";
+
     let game: Phaser.Game | undefined;
     let isDisposed = false;
 

@@ -17,6 +17,7 @@ type IntroMoment = {
 const DESIGN_WIDTH = 1024;
 const DESIGN_HEIGHT = 640;
 const INTRO_DEPTH = 2000;
+const BACKGROUND_OVERSCAN = 1.18;
 const BACKGROUND_KEY = "world-map-background";
 const BACKGROUND_PATH = "assets/images/Fundo/Camada1_Mundo.png";
 const CASCATA_WORLD_KEY = "world-node-cascata";
@@ -116,6 +117,7 @@ const INTRO_MOMENTS: IntroMoment[] = [
 
 export class IntroScene extends Phaser.Scene {
   private worldContainer?: Phaser.GameObjects.Container;
+  private backgroundImage?: Phaser.GameObjects.Image;
   private overlay?: Phaser.GameObjects.Rectangle;
   private corruptionOverlay?: Phaser.GameObjects.Rectangle;
   private textObject?: Phaser.GameObjects.Text;
@@ -168,13 +170,13 @@ export class IntroScene extends Phaser.Scene {
   private createWorldBackdrop(): void {
     this.computeWorldLayout();
 
+    this.backgroundImage = this.add.image(this.scale.width / 2, this.scale.height / 2, BACKGROUND_KEY);
+    this.backgroundImage.setOrigin(0.5).setDepth(0);
+    this.scaleBackgroundCover(this.backgroundImage);
+
     const world = this.add.container(this.worldOffsetX, this.worldOffsetY).setDepth(0);
     world.setScale(this.baseScale);
     this.worldContainer = world;
-
-    const background = this.add.image(0, 0, BACKGROUND_KEY).setOrigin(0, 0);
-    background.setDisplaySize(DESIGN_WIDTH, DESIGN_HEIGHT);
-    world.add(background);
 
     const path = this.add.graphics();
     path.lineStyle(3, 0x7df7ff, 0.08);
@@ -644,26 +646,49 @@ export class IntroScene extends Phaser.Scene {
     glint.destroy();
   }
 
-  private handleResize(): void {
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
+    this.cameras.main.setSize(gameSize.width, gameSize.height);
     this.computeWorldLayout();
-    this.overlay?.setSize(this.scale.width, this.scale.height);
-    this.corruptionOverlay?.setSize(this.scale.width, this.scale.height);
+    if (this.worldContainer) {
+      this.worldContainer.setPosition(this.worldOffsetX, this.worldOffsetY);
+      this.worldContainer.setScale(this.baseScale);
+    }
+    if (this.backgroundImage) {
+      this.scaleBackgroundCover(this.backgroundImage);
+    }
+    this.overlay?.setPosition(0, 0).setDisplaySize(this.scale.width, this.scale.height);
+    this.corruptionOverlay?.setPosition(0, 0).setDisplaySize(this.scale.width, this.scale.height);
     this.textObject?.setPosition(this.scale.width / 2, this.scale.height / 2);
     this.textObject?.setFontSize(this.getIntroFontSize());
     this.textObject?.setWordWrapWidth(Math.min(920, this.scale.width - 120));
     this.finalTextContainer?.setPosition(this.scale.width / 2, this.scale.height * 0.55);
     this.finalLeadText?.setFontSize(this.getFinalLeadFontSize());
     this.finalTitleText?.setFontSize(this.getFinalTitleFontSize());
-    this.cinematicShade?.setSize(this.scale.width, this.scale.height);
-    this.topShade?.setSize(this.scale.width, this.scale.height * 0.18);
+    this.cinematicShade?.setPosition(0, 0).setDisplaySize(this.scale.width, this.scale.height);
+    this.topShade?.setPosition(0, 0).setDisplaySize(this.scale.width, this.scale.height * 0.18);
     this.bottomShade?.setPosition(0, this.scale.height * 0.82);
-    this.bottomShade?.setSize(this.scale.width, this.scale.height * 0.18);
+    this.bottomShade?.setDisplaySize(this.scale.width, this.scale.height * 0.18);
   }
 
   private computeWorldLayout(): void {
     this.baseScale = Math.max(this.scale.width / DESIGN_WIDTH, this.scale.height / DESIGN_HEIGHT);
     this.worldOffsetX = (this.scale.width - DESIGN_WIDTH * this.baseScale) / 2;
     this.worldOffsetY = (this.scale.height - DESIGN_HEIGHT * this.baseScale) / 2;
+  }
+
+  private scaleBackgroundCover(image: Phaser.GameObjects.Image): void {
+    const textureSource = image.texture.getSourceImage() as { width?: number; height?: number };
+    const textureWidth = textureSource.width ?? DESIGN_WIDTH;
+    const textureHeight = textureSource.height ?? DESIGN_HEIGHT;
+    const width = this.scale.width;
+    const height = this.scale.height;
+    const scaleX = width / textureWidth;
+    const scaleY = height / textureHeight;
+    const scale = Math.max(scaleX, scaleY) * BACKGROUND_OVERSCAN;
+
+    image.setPosition(width / 2, height / 2);
+    image.setScale(scale);
   }
 
   private getIntroFontSize(): number {

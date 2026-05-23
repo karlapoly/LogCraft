@@ -227,19 +227,19 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private createTopHud(): void {
-    const tituloAlfa = this.add.text(0, 0, "Alfa", {
+    const tituloLog = this.add.text(0, 0, "Log", {
       font: "bold 52px Arial",
       color: "#4CAF50"
     });
-    tituloAlfa.setStroke("#FFFFFF", 10);
-    tituloAlfa.setShadow(3, 3, "#333333", 3, true, true);
+    tituloLog.setStroke("#FFFFFF", 10);
+    tituloLog.setShadow(3, 3, "#333333", 3, true, true);
 
-    const tituloMath = this.add.text(tituloAlfa.width - 6, 0, "Math:", {
+    const tituloCraft = this.add.text(tituloLog.width - 6, 0, "Craft:", {
       font: "bold 52px Arial",
       color: "#f59e0b"
     });
-    tituloMath.setStroke("#FFFFFF", 10);
-    tituloMath.setShadow(3, 3, "#333333", 3, true, true);
+    tituloCraft.setStroke("#FFFFFF", 10);
+    tituloCraft.setShadow(3, 3, "#333333", 3, true, true);
 
     const subtitulo = this.add.text(8, 48, "O Despertar do Mundo", {
       font: "bold 24px Arial",
@@ -248,7 +248,7 @@ export class WorldMapScene extends Phaser.Scene {
     subtitulo.setStroke("#000000", 4);
     subtitulo.setShadow(2, 2, "#000000", 1, false, false);
 
-    this.titleContainer = this.add.container(40, 40, [tituloAlfa, tituloMath, subtitulo]);
+    this.titleContainer = this.add.container(40, 40, [tituloLog, tituloCraft, subtitulo]);
     this.titleContainer.setDepth(UI_DEPTH);
     this.uiObjects.push(this.titleContainer);
   }
