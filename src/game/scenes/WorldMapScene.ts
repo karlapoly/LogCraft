@@ -58,7 +58,7 @@ const WORLD_BIOMES: WorldBiomeNode[] = [
   {
     id: "level-02",
     title: "Cavernas de Cristal",
-    subtitle: "Reflexos e proporcoes",
+    subtitle: "Reflexos e proporções",
     x: 352,
     y: 252,
     color: 0xc084fc,
@@ -68,7 +68,7 @@ const WORLD_BIOMES: WorldBiomeNode[] = [
   {
     id: "level-03",
     title: "Planície dos Ventos",
-    subtitle: "Padroes e direcoes",
+    subtitle: "Padrões e direções",
     x: 546,
     y: 332,
     color: 0xffd166,
@@ -78,7 +78,7 @@ const WORLD_BIOMES: WorldBiomeNode[] = [
   {
     id: "level-04",
     title: "Bosque Binário",
-    subtitle: "Sequencias de crescimento",
+    subtitle: "Sequências de crescimento",
     x: 726,
     y: 224,
     color: 0x76ff03,
@@ -88,7 +88,7 @@ const WORLD_BIOMES: WorldBiomeNode[] = [
   {
     id: "level-05",
     title: "Núcleo do Mundo",
-    subtitle: "Sintese final",
+    subtitle: "Síntese final",
     x: 884,
     y: 338,
     color: 0xff7b72,
@@ -112,13 +112,6 @@ export class WorldMapScene extends Phaser.Scene {
   private healthText?: Phaser.GameObjects.Text;
   private healthBackground?: Phaser.GameObjects.Graphics;
   private titleContainer?: Phaser.GameObjects.Container;
-  private legendPanel?: Phaser.GameObjects.Rectangle;
-  private legendTitle?: Phaser.GameObjects.Text;
-  private legendItems: Array<{
-    dot: Phaser.GameObjects.Arc;
-    label: Phaser.GameObjects.Text;
-    offsetX: number;
-  }> = [];
   private isDraggingMap = false;
   private dragStartPointer = new Phaser.Math.Vector2();
   private dragStartScroll = new Phaser.Math.Vector2();
@@ -186,7 +179,6 @@ export class WorldMapScene extends Phaser.Scene {
 
     this.createTopHud();
     this.createGlobalHealthBar();
-    this.createWorldLegend();
     this.bindCameraLayers();
 
     this.layoutUi();
@@ -434,41 +426,6 @@ export class WorldMapScene extends Phaser.Scene {
     });
   }
 
-  private createWorldLegend(): void {
-    this.legendPanel = this.add.rectangle(0, 0, 286, 102, 0x17341f, 0.86).setOrigin(0, 0);
-    this.legendPanel.setStrokeStyle(2, 0xe7f0d5, 0.16);
-    this.legendPanel.setDepth(UI_DEPTH);
-
-    this.legendTitle = this.add.text(0, 0, "Progresso dos Biomas", {
-      fontFamily: "Arial",
-      fontSize: "18px",
-      color: "#f4f7de"
-    });
-    this.legendTitle.setDepth(UI_DEPTH);
-
-    this.uiObjects.push(this.legendPanel, this.legendTitle);
-
-    [
-      { offsetX: 0, color: 0x76ff03, label: "Disponivel" },
-      { offsetX: 80, color: 0xf6f7d7, label: "Concluido" },
-      { offsetX: 162, color: 0x233127, label: "Bloqueado" }
-    ].forEach((item) => {
-      const dot = this.add.circle(0, 0, 10, item.color, 0.95);
-      dot.setStrokeStyle(2, 0xffffff, 0.3);
-      dot.setDepth(UI_DEPTH);
-
-      const label = this.add.text(0, 0, item.label, {
-        fontFamily: "Arial",
-        fontSize: "14px",
-        color: "#dce9d8"
-      });
-      label.setDepth(UI_DEPTH);
-
-      this.legendItems.push({ dot, label, offsetX: item.offsetX });
-      this.uiObjects.push(dot, label);
-    });
-  }
-
   private bindCameraLayers(): void {
     if (!this.uiCamera) {
       return;
@@ -493,15 +450,6 @@ export class WorldMapScene extends Phaser.Scene {
     this.titleContainer?.setPosition(40, 40);
     this.redrawGlobalHealth(biomaStoreApi.getState().saudeGlobalDoEcossistema);
 
-    const panelX = 52;
-    const panelY = this.scale.height - 148;
-    this.legendPanel?.setPosition(panelX, panelY);
-    this.legendTitle?.setPosition(panelX + 20, panelY + 22);
-
-    this.legendItems.forEach((item) => {
-      item.dot.setPosition(panelX + 28 + item.offsetX, panelY + 64);
-      item.label.setPosition(panelX + 46 + item.offsetX, panelY + 56);
-    });
   }
 
   private redrawGlobalHealth(ecosystemHealth: number): void {
@@ -730,7 +678,7 @@ export class WorldMapScene extends Phaser.Scene {
     const introText = this.add.text(
       this.scale.width / 2,
       this.scale.height / 2,
-      "Algo deu errado...\n\nUm erro digital chamado Buggie se espalhou e corrompeu o mundo.\nOs padrÃµes desapareceram, a lÃ³gica se perdeu... e tudo saiu do controle.\n\nAgora, sÃ³ vocÃª pode restaurar o equilÃ­brio.\nCom a ajuda dos robÃ´s-guia, resolva desafios, corrija erros e reconstrua o que foi destruÃ­do.\n\nCada decisÃ£o importa. Cada tentativa te aproxima da soluÃ§Ã£o.\n\nVocÃª estÃ¡ pronto para comeÃ§ar?",
+      "Algo deu errado...\n\nUm erro digital chamado Buggie se espalhou e corrompeu o mundo.\nOs padrões desapareceram, a lógica se perdeu... e tudo saiu do controle.\n\nAgora, só você pode restaurar o equilíbrio.\nCom a ajuda dos robôs-guia, resolva desafios, corrija erros e reconstrua o que foi destruído.\n\nCada decisão importa. Cada tentativa te aproxima da solução.\n\nVocê está pronto para começar?",
       {
         fontSize: "24px",
         color: "#ffffff",

@@ -49,6 +49,49 @@ type PhaseElementView = {
   image: Phaser.GameObjects.Image;
 };
 
+type ComputationalFlowSystem = "condutores" | "portais" | "distribuidores";
+
+type ComputationalFlowStep = {
+  system: ComputationalFlowSystem;
+  goals: Record<string, number>;
+  message: string;
+};
+
+type ComputationalFlowRoute =
+  | "cascade-to-condutores"
+  | "condutores-to-portais"
+  | "portais-to-distribuidores"
+  | "distribuidores-to-ecosystem-left"
+  | "distribuidores-to-ecosystem-right";
+
+type Phase6EnergyRoute =
+  | "crystal-to-cascade"
+  | "crystal-to-portals"
+  | "crystal-to-distributors"
+  | "crystal-to-reservoirs"
+  | "crystal-to-conductors";
+
+type ComputationalEnergyPath = {
+  route: ComputationalFlowRoute;
+  graphics: Phaser.GameObjects.Graphics;
+  color: number;
+  lineWidth: number;
+  alpha: number;
+};
+
+type ComputationalPortalNode = {
+  system: ComputationalFlowSystem;
+  container: Phaser.GameObjects.Container;
+};
+
+type Phase6EnergyPath = {
+  route: Phase6EnergyRoute;
+  graphics: Phaser.GameObjects.Graphics;
+  color: number;
+  lineWidth: number;
+  alpha: number;
+};
+
 type RobotButtonView = {
   id: string;
   operation: TipoDeOperacaoDaCascata;
@@ -112,9 +155,12 @@ const BOTTOM_PADDING = 28;
 const ROBOT_PANEL_HEIGHT = 186;
 const ROBOT_PANEL_PADDING_X = 22;
 const ROBOT_PANEL_SLOT_WIDTH = 88;
-const ROBOT_PANEL_SLOT_HEIGHT = 70;
+const ROBOT_PANEL_SLOT_HEIGHT = 78;
 const ROBOT_PANEL_SLOT_GAP = 18;
 const ROBOT_PANEL_TITLE_HEIGHT = 34;
+const ROBOT_PANEL_ICON_SIZE = 102;
+const ROBOT_PANEL_ICON_HOVER_SIZE = 110;
+const ROBOT_PANEL_ICON_ACTIVE_SIZE = 116;
 const MISSION_PANEL_WIDTH = 392;
 const MISSION_PANEL_HEIGHT = 186;
 const MISSION_PANEL_TITLE_HEIGHT = 48;
@@ -128,7 +174,7 @@ const ROBOT_INTRO_PARTICLE_KEY = "cascata-robot-intro-particle";
 const HEALTH_RING_RADIUS = 52;
 const HEALTH_RING_THICKNESS = 14;
 const CASCATA_OVERLAY_DEPTH = -16;
-const CASCATA_FASE_04_OVERLAY_DEPTH = -1;
+const CASCATA_FASE_04_OVERLAY_DEPTH = -16;
 const PLAYFIELD_TOP_OFFSET = 108;
 const PLAYFIELD_SIDE_MARGIN = 32;
 const SLOT_ZONE_WIDTH = 230;
@@ -154,6 +200,8 @@ const BACKGROUND_CORRUPTED_FASE_04_KEY = "fase-04-fundo-morto";
 const BACKGROUND_CORRUPTED_FASE_04_PATH = "assets/images/Fase04/FundoMorto.png";
 const BACKGROUND_RESTORED_FASE_04_KEY = "fase-04-fundo-vivo";
 const BACKGROUND_RESTORED_FASE_04_PATH = "assets/images/Fase04/FundoFase4.png";
+const BACKGROUND_RESTORED_FASE_06_KEY = "fase-06-fundo-vivo";
+const BACKGROUND_RESTORED_FASE_06_PATH = "assets/images/Fase06/FundoFase6.png";
 const NEXT_BUTTON_KEY = "ui-btn-next";
 const HOME_BUTTON_KEY = "ui-btn-home";
 const ROBO_ADICAO_KEY = "cascata-robo-adicao";
@@ -170,6 +218,8 @@ const CASCATA_FASE_02_KEY = "fase-02-cascata";
 const CASCATA_FASE_02_PATH = "assets/images/Fase02/Cascata.png";
 const CASCATA_FASE_04_KEY = "fase-04-cascata";
 const CASCATA_FASE_04_PATH = "assets/images/Fase04/Cascata.png";
+const CASCATA_FASE_06_KEY = "fase-06-cascata";
+const CASCATA_FASE_06_PATH = "assets/images/Fase06/Cascata.png";
 const ARVORES_MORTAS_KEY = "fase-arvores-mortas";
 const ARVORES_MORTAS_PATH = "assets/images/Fase01/ArvoresMortas.png";
 const FLOR_MORTA_KEY = "fase-flor-morta";
@@ -212,6 +262,8 @@ const FLUXO_AGUA_SENSOR_FASE_04_KEY = "fase-04-fluxo-agua-sensor";
 const FLUXO_AGUA_SENSOR_FASE_04_PATH = "assets/images/Fase04/FluxoAguaSensor.png";
 const FLUXO_AGUA_SOLO_FASE_04_KEY = "fase-04-fluxo-agua-solo";
 const FLUXO_AGUA_SOLO_FASE_04_PATH = "assets/images/Fase04/FluxoAguaSolo.png";
+const FLUXO_AGUA_SENSOR_FASE_06_KEY = "fase-06-fluxo-agua-sensor";
+const FLUXO_AGUA_SENSOR_FASE_06_PATH = "assets/images/Fase06/FluxoAguaSensor.png";
 const AUDIO_CLICK_MODULE_KEY = "audio-click-module";
 const AUDIO_CLICK_MODULE_PATH = "assets/audio/click_module.wav";
 const AUDIO_SUCCESS_SYNC_KEY = "audio-success-sync";
@@ -343,12 +395,71 @@ const PLAQUE_POSITIONS = [
   { x: 1360, y: 964 }
 ];
 
+const COMPUTATIONAL_FLOW_STEPS: ComputationalFlowStep[] = [
+  {
+    system: "condutores",
+    goals: { Flores: 35, Arvores: 45, Solo: 15 },
+    message: "Condutores restaurados. O fluxo chegou aos portais."
+  },
+  {
+    system: "portais",
+    goals: { Flores: 45, Arvores: 55, Solo: 25 },
+    message: "Portais estabilizados. A energia encontrou os distribuidores."
+  },
+  {
+    system: "distribuidores",
+    goals: { Flores: 40, Arvores: 50, Solo: 20 },
+    message: "Distribuidores sincronizados. O ecossistema voltou a respirar."
+  }
+];
+
+const DEBUG_MESSAGES = [
+  "Hmm... o fluxo ainda não foi restaurado.\nTalvez outra sequência funcione melhor.",
+  "O Buggie confundiu os sistemas...\nMas toda tentativa revela uma nova estratégia.",
+  "Na computação, testar faz parte da solução.",
+  "Debugging iniciado:\nvamos analisar uma nova possibilidade?",
+  "As conexões ainda estão instáveis...\nMas agora sabemos o que ajustar.",
+  "Algoritmos também aprendem com tentativas.",
+  "O sistema reagiu diferente do esperado.\nHora de testar uma nova lógica.",
+  "Cada tentativa aproxima a cascata da restauração.",
+  "O fluxo quase foi sincronizado.\nTalvez outra combinação funcione melhor.",
+  "Grandes sistemas exigem múltiplos testes.",
+  "O Buggie criou interferências...\nMas padrões podem revelar a solução.",
+  "A lógica está evoluindo.\nVamos tentar novamente?",
+  "Mesmo sistemas inteligentes precisam recalcular rotas.",
+  "Talvez a ordem das operações seja a chave.",
+  "O ecossistema respondeu parcialmente...\nContinue investigando."
+];
+
+const DEBUG_MESSAGES_BY_PHASE: Record<number, string[]> = {
+  4: [
+    "Sequências instáveis pedem ordem e precisão.\nQual operação prepara melhor o próximo passo?",
+    "Multiplicar pode acelerar o fluxo...\nmas talvez a preparação venha antes."
+  ],
+  5: [
+    "O fluxo computacional respondeu parcialmente.\nQue etapa da rede precisa ser restaurada agora?",
+    "Condutores, portais e distribuidores precisam de sincronia.\nVamos depurar a sequência?"
+  ],
+  6: [
+    "O Sistema Central precisa prever antes de executar.\nTeste uma rota lógica diferente.",
+    "Quando a previsão não fecha, o algoritmo recalcula.\nQue valor deve mudar primeiro?"
+  ],
+  7: [
+    "Depurar o Buggie exige observar padrões.\nQual comando estabiliza melhor o núcleo?",
+    "O núcleo respondeu, mas ainda há ruído lógico.\nVamos revisar a sequência?"
+  ],
+  8: [
+    "A cascata está perto da restauração completa.\nQual automação reduz os passos?",
+    "Sistemas finais pedem soluções enxutas.\nQue sequência usa menos energia?"
+  ]
+};
+
 const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
   1: {
     subtitle: "Fase 01 - Soma",
     background: BACKGROUND_CORRUPTED_KEY,
     robotButtons: [
-      { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "Adicao", x: 40, y: -46 }
+      { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "Adição", x: 40, y: -46 }
     ],
     targets: [
       { output: "Flores", initial: 20, goal: 30 },
@@ -360,8 +471,8 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
     subtitle: "Fluxo e Refluxo",
     background: BACKGROUND_CORRUPTED_KEY,
     robotButtons: [
-      { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "Adicao", x: 10, y: -46, value: 10 },
-      { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "Subtracao", x: 80, y: -46, value: -10 }
+      { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "Adição", x: 10, y: -46, value: 10 },
+      { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "Subtração", x: 80, y: -46, value: -10 }
     ],
     targets: [
       { output: "Flores", initial: 40, goal: 20 },
@@ -370,28 +481,29 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
     ]
   },
   3: {
-    subtitle: "Sincronizar os Sensores das Raizes Digitais",
+    subtitle: "Sincronizar os Sensores das Raízes Digitais",
     background: BACKGROUND_CORRUPTED_KEY,
-    maxMoves: 8,
+    maxMoves: 5,
     puzzleType: "root-sensor-sync",
-    narrative: "As Raizes Digitais operam em frequencias desalinhadas apos a falha de sincronizacao do Buggie.",
+    narrative: "As Raízes Digitais operam em frequências desalinhadas após a falha de sincronização do Buggie.",
     robotButtons: [
       { operation: "adicao", texture: ROBO_ADICAO_KEY, label: "+10", x: -2, y: -46, value: 10 },
       { operation: "addition", texture: ROBO_ADICAO_KEY, label: "+5", x: 58, y: -46, value: 5 },
+      { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "-10", x: 88, y: -46, value: -10 },
       { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "-5", x: 118, y: -46, value: -5 }
     ],
     targets: [
-      { output: "Flores", initial: 15, goal: 25 },
-      { output: "Solo", initial: 30, goal: 45 },
-      { output: "Arvores", initial: 5, goal: 15 }
+      { output: "Flores", initial: 15, goal: 35 },
+      { output: "Solo", initial: 5, goal: 20 },
+      { output: "Arvores", initial: 30, goal: 20 }
     ]
   },
   4: {
-    subtitle: "Sequencia Instavel",
+    subtitle: "Sequência Instável",
     background: BACKGROUND_CORRUPTED_FASE_04_KEY,
-    maxMoves: 6,
+    maxMoves: 10,
     puzzleType: "unstable-sequence",
-    narrative: "As Rochas Energeticas da Cascata sofreram uma sobrecarga e precisam de operacoes em ordem segura.",
+    narrative: "As Rochas Energéticas da Cascata sofreram uma sobrecarga e precisam de operações em ordem segura.",
     sequenceRules: {
       lockedOperations: ["multiply", "multiplication"],
       unlockAfterStabilizingMove: ["multiply", "multiplication"],
@@ -399,42 +511,44 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
     },
     robotButtons: [
       { operation: "addition", texture: ROBO_ADICAO_KEY, label: "+10", x: -2, y: -46, value: 10 },
+      { operation: "addition", texture: ROBO_ADICAO_KEY, label: "+5", x: 28, y: -46, value: 5 },
       { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "-10", x: 58, y: -46, value: -10 },
+      { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "-5", x: 88, y: -46, value: -5 },
       { operation: "multiply", texture: ROBO_MULTIPLICACAO_KEY, label: "x2", x: 118, y: -46, value: 2 }
     ],
     targets: [
-      { output: "Flores", initial: 10, goal: 40 },
-      { output: "Arvores", initial: 15, goal: 60 },
-      { output: "Solo", initial: 30, goal: 20 }
+      { output: "Flores", initial: 10, goal: 50 },
+      { output: "Arvores", initial: 15, goal: 55 },
+      { output: "Solo", initial: 60, goal: 20 }
     ]
   },
   5: {
     subtitle: "Fluxo Computacional",
     background: BACKGROUND_CORRUPTED_KEY,
-    maxMoves: 6,
+    maxMoves: 5,
     puzzleType: "computational-flow",
-    narrative: "O fluxo energetico do bioma digital entrou em colapso apos falhas nos circuitos vivos responsaveis pela redistribuicao de energia.",
-    operationRules: {
-      simultaneousDivision: true
-    },
+    narrative: "O fluxo energético do bioma digital entrou em colapso após falhas nos circuitos vivos responsáveis pela redistribuição de energia.",
     robotButtons: [
       { operation: "addition", texture: ROBO_ADICAO_KEY, label: "+10", x: -2, y: -46, value: 10 },
+      { operation: "addition", texture: ROBO_ADICAO_KEY, label: "+5", x: 28, y: -46, value: 5 },
       { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "-10", x: 58, y: -46, value: -10 },
+      { operation: "subtraction", texture: ROBO_SUBTRACAO_KEY, label: "-5", x: 88, y: -46, value: -5 },
+      { operation: "multiply", texture: ROBO_MULTIPLICACAO_KEY, label: "x2", x: 118, y: -46, value: 2 },
       { operation: "division", texture: ROBO_DIVISAO_KEY, label: "/2", x: 118, y: -46, value: 2 }
     ],
     targets: [
-      { output: "Flores", initial: 80, goal: 40 },
-      { output: "Arvores", initial: 100, goal: 50 },
-      { output: "Solo", initial: 40, goal: 20 }
+      { output: "Flores", initial: 70, goal: 35 },
+      { output: "Arvores", initial: 90, goal: 45 },
+      { output: "Solo", initial: 30, goal: 15 }
     ]
   },
   6: {
     subtitle: "Sistema Central",
     background: BACKGROUND_CORRUPTED_KEY,
-    maxMoves: 5,
+    maxMoves: 8,
     puzzleType: "central-system",
     sequenceMode: true,
-    narrative: "O nucleo principal da Cascata de Dados entrou em colapso apos sucessivas falhas energeticas provocadas pelo Buggie.",
+    narrative: "O núcleo principal da Cascata de Dados entrou em colapso após sucessivas falhas energéticas provocadas pelo Buggie.",
     operationRules: {
       previewBeforeDrop: true,
       criticalMin: 0,
@@ -453,14 +567,14 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
     ]
   },
   7: {
-    subtitle: "Nucleo do Buggie",
+    subtitle: "Núcleo do Buggie",
     background: BACKGROUND_CORRUPTED_KEY,
     maxMoves: 7,
     puzzleType: "buggie-core",
     sequenceMode: true,
     corruptionMode: true,
     debugMode: true,
-    narrative: "O Buggie revelou seu nucleo central e espalhou corrupcao logica por toda a Cascata de Dados.",
+    narrative: "O Buggie revelou seu núcleo central e espalhou corrupção lógica por toda a Cascata de Dados.",
     operationRules: {
       previewBeforeDrop: true,
       criticalMin: 0,
@@ -493,7 +607,7 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
     optimizationRules: {
       idealMoves: 3
     },
-    narrative: "A Cascata de Dados entrou em falha critica e o ultimo nucleo corrompido ameaca destruir o ecossistema digital.",
+    narrative: "A Cascata de Dados entrou em falha crítica e o último núcleo corrompido ameaça destruir o ecossistema digital.",
     operationRules: {
       previewBeforeDrop: true,
       criticalMin: 0,
@@ -545,18 +659,31 @@ export class CascataScene extends Phaser.Scene {
   private energyClickBars: Phaser.GameObjects.Rectangle[] = [];
   private phaseElements = new Map<string, PhaseElementView>();
   private restoredTopics = new Set<string>();
+  private computationalFlowPaths = new Map<string, ComputationalEnergyPath>();
+  private computationalFlowNodes = new Map<ComputationalFlowSystem, ComputationalPortalNode>();
+  private computationalFlowObjects: Phaser.GameObjects.GameObject[] = [];
+  private computationalFlowEvents: Phaser.Time.TimerEvent[] = [];
+  private activatedComputationalSystems = new Set<ComputationalFlowSystem>();
+  private phase6EnergyPaths = new Map<Phase6EnergyRoute, Phase6EnergyPath>();
+  private phase6EnergyObjects: Phaser.GameObjects.GameObject[] = [];
+  private phase6EnergyEvents: Phaser.Time.TimerEvent[] = [];
+  private phase6ActivatedStages = new Set<string>();
+  private phase6CascadeOrb?: Phaser.GameObjects.Container;
+  private phase6SyncTargets: Phaser.GameObjects.GameObject[] = [];
   private firstRestoreDecorationShown = false;
   private slotViews = new Map<string, SlotView>();
   private slotObjects: Phaser.GameObjects.GameObject[] = [];
   private robotButtons = new Map<string, RobotButtonView>();
   private unsubscribeStore?: () => void;
   private panelDynamicObjects: Phaser.GameObjects.GameObject[] = [];
+  private draggedRobotPreview?: Phaser.GameObjects.Image;
   private moveCounterText?: Phaser.GameObjects.Text;
   private predictionPreviewText?: Phaser.GameObjects.Text;
   private currentMoves = 0;
   private maxMoves?: number;
   private phaseFailed = false;
   private stabilizingMovePlayed = false;
+  private computationalFlowStepIndex = 0;
   private playfieldBounds = new Phaser.Geom.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
   private slotLayoutBaseWidth = BASE_WIDTH;
   private slotLayoutBaseHeight = BASE_HEIGHT;
@@ -567,6 +694,9 @@ export class CascataScene extends Phaser.Scene {
   private isRobotIntroActive = false;
   private robotIntroObjects: Phaser.GameObjects.GameObject[] = [];
   private activeRobotIntroId?: string;
+  private debugPopupObjects: Phaser.GameObjects.GameObject[] = [];
+  private lastDebugMessage?: string;
+  private isDebugPopupOpen = false;
 
   public constructor() {
     super("CascataScene");
@@ -586,9 +716,11 @@ export class CascataScene extends Phaser.Scene {
       [BACKGROUND_RESTORED_FASE_02_KEY, BACKGROUND_RESTORED_FASE_02_PATH],
       [BACKGROUND_CORRUPTED_FASE_04_KEY, BACKGROUND_CORRUPTED_FASE_04_PATH],
       [BACKGROUND_RESTORED_FASE_04_KEY, BACKGROUND_RESTORED_FASE_04_PATH],
+      [BACKGROUND_RESTORED_FASE_06_KEY, BACKGROUND_RESTORED_FASE_06_PATH],
       [CASCATA_KEY, CASCATA_PATH],
       [CASCATA_FASE_02_KEY, CASCATA_FASE_02_PATH],
       [CASCATA_FASE_04_KEY, CASCATA_FASE_04_PATH],
+      [CASCATA_FASE_06_KEY, CASCATA_FASE_06_PATH],
       [ROBO_ADICAO_KEY, ROBO_ADICAO_PATH],
       [ROBO_SUBTRACAO_KEY, ROBO_SUBTRACAO_PATH],
       [ROBO_DIVISAO_KEY, ROBO_DIVISAO_PATH],
@@ -613,7 +745,8 @@ export class CascataScene extends Phaser.Scene {
       [ARVORES_ROCHAS_FASE_04_KEY, ARVORES_ROCHAS_FASE_04_PATH],
       [SOLO_BOMBA_FASE_04_KEY, SOLO_BOMBA_FASE_04_PATH],
       [FLUXO_AGUA_SENSOR_FASE_04_KEY, FLUXO_AGUA_SENSOR_FASE_04_PATH],
-      [FLUXO_AGUA_SOLO_FASE_04_KEY, FLUXO_AGUA_SOLO_FASE_04_PATH]
+      [FLUXO_AGUA_SOLO_FASE_04_KEY, FLUXO_AGUA_SOLO_FASE_04_PATH],
+      [FLUXO_AGUA_SENSOR_FASE_06_KEY, FLUXO_AGUA_SENSOR_FASE_06_PATH]
     ] as [string, string][]).forEach(([textureKey, path]) => {
       if (!this.textures.exists(textureKey)) {
         this.load.image(textureKey, path);
@@ -676,7 +809,9 @@ export class CascataScene extends Phaser.Scene {
     this.currentMoves = 0;
     this.maxMoves = config.maxMoves;
     this.phaseFailed = false;
+    this.closeDebugPopup();
     this.stabilizingMovePlayed = false;
+    this.computationalFlowStepIndex = 0;
     this.isRobotIntroActive = false;
     // Inicializa o estado global
     const metas: MetaDeBioma[] = config.targets.map(t => ({
@@ -695,6 +830,7 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.subtitleText?.setText("Cascata de dados");
+    this.updateAuxiliaryTextVisibility();
     this.fullscreenCorruptedBackground?.setTexture(config.background);
 
     if (!options.preservePhaseVisuals) {
@@ -718,6 +854,7 @@ export class CascataScene extends Phaser.Scene {
     this.renderMetaValues(biomaStoreApi.getState().metas);
     this.resultText?.setText("");
     this.resultText?.setColor("#fff5cf");
+    this.updateAuxiliaryTextVisibility();
     this.layoutScene(this.scale.width, this.scale.height);
     this.time.delayedCall(220, () => {
       this.showRobotIntroduction();
@@ -885,6 +1022,11 @@ export class CascataScene extends Phaser.Scene {
     this.missionPanelLine2?.setText(copy.line2);
   }
 
+  private updateAuxiliaryTextVisibility(): void {
+    this.subtitleText?.setVisible(false);
+    this.resultText?.setVisible(false);
+  }
+
   private createPhaseElements(): void {
     PHASE_ELEMENT_CONFIGS.forEach((config) => {
       this.createPhaseElementFromConfig(config);
@@ -975,7 +1117,7 @@ export class CascataScene extends Phaser.Scene {
         case "Flores":
           return "Canais";
         case "Solo":
-          return "Raizes Digitais";
+          return "Raízes Digitais";
         case "Arvores":
           return "Purificadores";
         default:
@@ -990,7 +1132,7 @@ export class CascataScene extends Phaser.Scene {
         case "Solo":
           return "Bombas";
         case "Arvores":
-          return "Rochas Energeticas";
+          return "Rochas Energéticas";
         default:
           return output;
       }
@@ -1001,7 +1143,7 @@ export class CascataScene extends Phaser.Scene {
         case "Flores":
           return "Sensores";
         case "Solo":
-          return "ReservatÃ³rios";
+          return "Reservatórios";
         case "Arvores":
           return "Turbinas";
         default:
@@ -1179,7 +1321,7 @@ export class CascataScene extends Phaser.Scene {
     const panelWidth = Math.min(this.scale.width - 180, 1120);
     const panelHeight = isBuilderIntro ? 610 : 540;
     const panelX = centerX - panelWidth / 2;
-    const panelY = centerY - 150;
+    const panelY = Phaser.Math.Clamp(centerY - 150, 48, Math.max(48, this.scale.height - panelHeight - 48));
     const closeButtonSize = 44;
     const overlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x030512, 0);
     overlay.setOrigin(0, 0).setDepth(80).setScrollFactor(0);
@@ -1200,13 +1342,13 @@ export class CascataScene extends Phaser.Scene {
     readabilityPanel.lineStyle(2, config.accentColor, 0.32);
     readabilityPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 26);
 
-    const robotY = isBuilderIntro ? panelY + 42 : panelY - 24;
+    const robotY = isBuilderIntro ? panelY + 42 : panelY + 76;
     const robot = this.add.image(centerX, robotY, config.textureKey);
-    robot.setDepth(84).setScrollFactor(0).setAlpha(0).setScale(isBuilderIntro ? 0.52 : 0.56);
+    robot.setDepth(84).setScrollFactor(0).setAlpha(0).setScale(isBuilderIntro ? 0.52 : this.getRobotIntroScale(config.level, "initial"));
 
-    const nameText = this.add.text(centerX, isBuilderIntro ? panelY + 190 : panelY + 184, config.name, {
+    const nameText = this.add.text(centerX, isBuilderIntro ? panelY + 190 : panelY + 232, config.name, {
       fontFamily: "Georgia",
-      fontSize: isBuilderIntro ? "44px" : "42px",
+      fontSize: isBuilderIntro ? "44px" : "38px",
       fontStyle: "bold",
       color: isBuilderIntro ? "#102033" : "#102033",
       align: "center"
@@ -1218,13 +1360,13 @@ export class CascataScene extends Phaser.Scene {
     const textWidth = panelWidth - 130;
     const bodyText = this.add.text(
       centerX,
-      isBuilderIntro ? panelY + 250 : panelY + 218,
+      isBuilderIntro ? panelY + 250 : panelY + 282,
       isBuilderIntro
         ? "O Buggie corrompeu os fluxos da Cascata de Dados."
         : this.getRobotIntroBodyText(config),
       {
         fontFamily: "Georgia",
-        fontSize: isBuilderIntro ? "25px" : "26px",
+        fontSize: isBuilderIntro ? "25px" : "24px",
         color: "#172033",
         align: "center",
         lineSpacing: isBuilderIntro ? 7 : 6,
@@ -1277,9 +1419,9 @@ export class CascataScene extends Phaser.Scene {
       highlightTexts.push(hopeText, restoreText, buildText);
     }
 
-    const moduleText = this.add.text(centerX, panelY + panelHeight - (isBuilderIntro ? 58 : 64), config.moduleText, {
+    const moduleText = this.add.text(centerX, panelY + panelHeight - (isBuilderIntro ? 58 : 54), config.moduleText, {
       fontFamily: "Georgia",
-      fontSize: isBuilderIntro ? "32px" : "28px",
+      fontSize: isBuilderIntro ? "32px" : "26px",
       fontStyle: "bold",
       color: isBuilderIntro ? "#0f4865" : "#0f4865",
       align: "center"
@@ -1381,16 +1523,16 @@ export class CascataScene extends Phaser.Scene {
     this.tweens.add({
       targets: objects.robot,
       alpha: 1,
-      scaleX: config.level === 1 ? 0.66 : 0.72,
-      scaleY: config.level === 1 ? 0.66 : 0.72,
-      y: objects.robot.y - (config.level === 1 ? 14 : 28),
+      scaleX: config.level === 1 ? 0.66 : this.getRobotIntroScale(config.level, "target"),
+      scaleY: config.level === 1 ? 0.66 : this.getRobotIntroScale(config.level, "target"),
+      y: objects.robot.y - (config.level === 1 ? 14 : 10),
       duration: 980,
       ease: "Back.Out"
     });
 
     this.tweens.add({
       targets: objects.robot,
-      y: config.level === 1 ? "-=6" : "-=10",
+      y: config.level === 1 ? "-=6" : "-=5",
       angle: config.level === 4 ? 2 : 1.2,
       duration: 1450,
       yoyo: true,
@@ -1422,6 +1564,18 @@ export class CascataScene extends Phaser.Scene {
     this.time.delayedCall(1550, () => {
       this.tweens.add({ targets: [objects.closeButton, objects.closeIcon], alpha: 1, duration: 420, ease: "Sine.Out" });
     });
+  }
+
+  private getRobotIntroScale(level: number, state: "initial" | "target"): number {
+    if (level === 4) {
+      return state === "initial" ? 0.34 : 0.42;
+    }
+
+    if (level === 5) {
+      return state === "initial" ? 0.32 : 0.4;
+    }
+
+    return state === "initial" ? 0.34 : 0.42;
   }
 
   private startGameplay(): void {
@@ -1519,7 +1673,7 @@ export class CascataScene extends Phaser.Scene {
       }
       window.localStorage.setItem(ROBOT_INTRO_STORAGE_KEY, JSON.stringify(nextSeenIds));
     } catch {
-      // Se o navegador bloquear storage, a apresentaÃ§Ã£o nÃ£o interrompe o jogo.
+      // Se o navegador bloquear storage, a apresentação não interrompe o jogo.
     }
   }
 
@@ -1604,7 +1758,7 @@ export class CascataScene extends Phaser.Scene {
 
   private createRobotPanel(): Phaser.GameObjects.Container {
     this.robotPanelFrame = this.add.graphics();
-    this.robotPanelTitle = this.add.text(this.getRobotPanelWidth() / 2, 27, "RobÃ´s Assistentes", {
+    this.robotPanelTitle = this.add.text(this.getRobotPanelWidth() / 2, 27, "Robôs Assistentes", {
       fontFamily: "Georgia",
       fontSize: "19px",
       fontStyle: "bold",
@@ -1926,7 +2080,8 @@ export class CascataScene extends Phaser.Scene {
     localX = homePosition.x;
     localY = homePosition.y - 4;
     const buttonId = `${operation}-${buttonValue}-${localX}-${localY}`;
-    const sprite = this.add.image(localX, localY, textureKey).setScale(0.1456);
+    const sprite = this.add.image(localX, localY, textureKey);
+    this.setRobotButtonVisualSize(sprite, ROBOT_PANEL_ICON_SIZE);
     sprite.setData("panelButton", true);
     sprite.setData("slotFrame", slotFrame);
     sprite.setData("buttonId", buttonId);
@@ -1936,7 +2091,7 @@ export class CascataScene extends Phaser.Scene {
     sprite.setData("homeY", localY);
     sprite.setInteractive({ useHandCursor: true, draggable: true });
 
-    const caption = this.add.text(localX, localY + 38, this.getRobotButtonCaption(operation, buttonValue), {
+    const caption = this.add.text(localX, localY + 44, this.getRobotButtonCaption(operation, buttonValue), {
       fontFamily: "Georgia",
       fontSize: "40px",
       color: "#f2c45d",
@@ -1975,6 +2130,30 @@ export class CascataScene extends Phaser.Scene {
     this.redrawRobotPanel();
   }
 
+  private setRobotButtonVisualSize(sprite: Phaser.GameObjects.Image, size: number): void {
+    const textureSource = sprite.texture.getSourceImage() as { width?: number; height?: number };
+    const sourceWidth = textureSource.width ?? size;
+    const sourceHeight = textureSource.height ?? size;
+    const ratio = sourceWidth > 0 && sourceHeight > 0 ? sourceWidth / sourceHeight : 1;
+
+    if (ratio >= 1) {
+      sprite.setDisplaySize(size, size / ratio);
+      return;
+    }
+
+    sprite.setDisplaySize(size * ratio, size);
+  }
+
+  private clearDraggedRobotPreview(): void {
+    if (!this.draggedRobotPreview) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.draggedRobotPreview);
+    this.draggedRobotPreview.destroy();
+    this.draggedRobotPreview = undefined;
+  }
+
   private createMoveCounter(): void {
     this.moveCounterText = undefined;
     this.updateMoveCounter();
@@ -2006,7 +2185,7 @@ export class CascataScene extends Phaser.Scene {
         return;
       }
 
-      gameObject.setScale(0.155);
+      this.setRobotButtonVisualSize(gameObject, ROBOT_PANEL_ICON_HOVER_SIZE);
       gameObject.setTint(0xffffff);
       const slotFrame = gameObject.getData("slotFrame") as Phaser.GameObjects.Graphics | undefined;
       if (slotFrame) {
@@ -2025,7 +2204,7 @@ export class CascataScene extends Phaser.Scene {
         return;
       }
 
-      gameObject.setScale(0.1456);
+      this.setRobotButtonVisualSize(gameObject, ROBOT_PANEL_ICON_SIZE);
       if (this.currentSubLevel >= 3) {
         gameObject.setTint(this.currentSubLevel === 4 ? 0xffdf74 : 0xd7fbff);
       } else {
@@ -2049,25 +2228,32 @@ export class CascataScene extends Phaser.Scene {
         }
 
         gameObject.setTint(0xffffff);
-        gameObject.setScale(0.165);
+        this.setRobotButtonVisualSize(gameObject, ROBOT_PANEL_ICON_ACTIVE_SIZE);
         const slotFrame = gameObject.getData("slotFrame") as Phaser.GameObjects.Graphics | undefined;
         if (slotFrame) {
           this.drawRobotSlot(slotFrame, true);
         }
-        this.resultText?.setText("Arrastando robo. Solte sobre uma nascente.");
+        this.resultText?.setText("Arrastando robô. Solte sobre uma nascente.");
       }
     );
 
     this.input.on(
       Phaser.Input.Events.DRAG_START,
-      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
         if (this.isRobotIntroActive) {
           return;
         }
         if (!(gameObject instanceof Phaser.GameObjects.Image) || !gameObject.getData("panelButton")) {
           return;
         }
-        gameObject.setDepth(50);
+        gameObject.setDepth(11);
+        this.clearDraggedRobotPreview();
+        this.draggedRobotPreview = this.add.image(pointer.worldX, pointer.worldY, gameObject.texture.key);
+        this.setRobotButtonVisualSize(this.draggedRobotPreview, ROBOT_PANEL_ICON_ACTIVE_SIZE);
+        this.draggedRobotPreview
+          .setDepth(50)
+          .setAlpha(0.9)
+          .setTint(0xffffff);
       }
     );
 
@@ -2076,8 +2262,8 @@ export class CascataScene extends Phaser.Scene {
       (
         pointer: Phaser.Input.Pointer,
         gameObject: Phaser.GameObjects.GameObject,
-        dragX: number,
-        dragY: number
+        _dragX: number,
+        _dragY: number
       ) => {
         if (this.isRobotIntroActive) {
           return;
@@ -2086,8 +2272,7 @@ export class CascataScene extends Phaser.Scene {
           return;
         }
 
-        gameObject.x = dragX;
-        gameObject.y = dragY;
+        this.draggedRobotPreview?.setPosition(pointer.worldX, pointer.worldY);
         this.updatePredictionPreview(gameObject, pointer.worldX, pointer.worldY);
       }
     );
@@ -2125,6 +2310,7 @@ export class CascataScene extends Phaser.Scene {
           return;
         }
         this.clearPredictionPreview();
+        this.clearDraggedRobotPreview();
 
         const buttonId = gameObject.getData("buttonId") as string;
         const button = this.robotButtons.get(buttonId);
@@ -2139,7 +2325,7 @@ export class CascataScene extends Phaser.Scene {
           duration: dropped ? 120 : 180,
           ease: "Sine.Out",
           onComplete: () => {
-            gameObject.setScale(0.1456);
+            this.setRobotButtonVisualSize(gameObject, ROBOT_PANEL_ICON_SIZE);
             if (this.currentSubLevel >= 3) {
               gameObject.setTint(this.currentSubLevel === 4 ? 0xffdf74 : 0xd7fbff);
             } else {
@@ -2312,7 +2498,7 @@ export class CascataScene extends Phaser.Scene {
   ): void {
     const sequence = this.getAutomationSequence(slotView.output, operation);
     if (!sequence) {
-      this.failCurrentPhase("Sequencia invalida: este modulo nao otimiza esse sistema.");
+      this.failCurrentPhase("Sequência inválida: este módulo não otimiza esse sistema.", true);
       this.flashSlot(slotView, 0xff306f);
       this.playAudioPlaceholder(AUDIO_FINAL_WARNING_KEY);
       this.playDebugCoreFeedback(slotView, false);
@@ -2324,7 +2510,7 @@ export class CascataScene extends Phaser.Scene {
     const criticalMin = levelConfig?.operationRules?.criticalMin ?? Number.NEGATIVE_INFINITY;
     const criticalMax = levelConfig?.operationRules?.criticalMax ?? Number.POSITIVE_INFINITY;
     if (nextValue < criticalMin || nextValue > criticalMax) {
-      this.failCurrentPhase("Automacao invalida: a sequencia excedeu os limites seguros.");
+      this.failCurrentPhase("Automação inválida: a sequência excedeu os limites seguros.", true);
       this.flashSlot(slotView, 0xff306f);
       this.playAudioPlaceholder(AUDIO_FINAL_WARNING_KEY);
       this.playDebugCoreFeedback(slotView, false);
@@ -2346,7 +2532,7 @@ export class CascataScene extends Phaser.Scene {
     const updatedMetas = biomaStoreApi.getState().metas;
     const venceu = updatedMetas.length > 0 && updatedMetas.every((meta: MetaDeBioma) => meta.current === meta.goal);
     if (this.maxMoves && this.currentMoves >= this.maxMoves && !venceu) {
-      this.failCurrentPhase("Colapso final: a automacao gastou todos os ciclos disponiveis.");
+      this.failCurrentPhase("Energia encerrada. Hora de revisar a estratégia.", true);
       this.playAudioPlaceholder(AUDIO_FINAL_WARNING_KEY);
     }
   }
@@ -2372,6 +2558,11 @@ export class CascataScene extends Phaser.Scene {
       return;
     }
 
+    if (this.currentSubLevel === 5) {
+      this.handleComputationalFlowDrop(operation, operationValue);
+      return;
+    }
+
     if (!this.validateSequenceOperation(operation, slotView)) {
       return;
     }
@@ -2381,7 +2572,7 @@ export class CascataScene extends Phaser.Scene {
     const divisionValue = operationValue ?? this.getDefaultOperationValue(operation);
     const isDivision = isCascataDivisionOperation(operation);
     if (isDivision && (simultaneousDivision ? currentMetas.some((meta) => meta.current % divisionValue !== 0) : targetMeta.current % divisionValue !== 0)) {
-      this.failCurrentPhase("Fluxo invalido: a divisao geraria energia fracionada.");
+      this.failCurrentPhase("Fluxo inválido: a divisão geraria energia fracionada.", true);
       this.flashSlot(slotView, 0xff5c5c);
       this.playAudioPlaceholder(this.currentSubLevel >= 6 ? AUDIO_PREDICTION_ERROR_KEY : AUDIO_ERROR_LIMIT_KEY);
       this.playComputationalFlowFeedback(slotView, false);
@@ -2394,7 +2585,7 @@ export class CascataScene extends Phaser.Scene {
     const criticalMin = levelConfig?.operationRules?.criticalMin ?? Number.NEGATIVE_INFINITY;
     const criticalMax = levelConfig?.operationRules?.criticalMax ?? Number.POSITIVE_INFINITY;
     if (this.currentSubLevel >= 6 && (nextValue < criticalMin || nextValue > criticalMax)) {
-      this.failCurrentPhase(this.currentSubLevel === 7 ? "Corrupcao critica: a operacao travou o nucleo logico." : "Sequencia invalida: previsao excede o limite seguro do Sistema Central.");
+      this.failCurrentPhase(this.currentSubLevel === 7 ? "Corrupção crítica: a operação travou o núcleo lógico." : "Sequência inválida: previsão excede o limite seguro do Sistema Central.", true);
       this.flashSlot(slotView, 0xff5c5c);
       this.playAudioPlaceholder(this.currentSubLevel === 7 ? AUDIO_CORRUPTION_WARNING_KEY : AUDIO_PREDICTION_ERROR_KEY);
       this.playCentralSystemFeedback(slotView, false);
@@ -2402,8 +2593,12 @@ export class CascataScene extends Phaser.Scene {
       return;
     }
 
-    if ((this.currentSubLevel === 3 || this.currentSubLevel === 4) && nextValue > targetMeta.goal) {
-      this.failCurrentPhase(this.currentSubLevel === 4 ? "Sobrecarga energetica. Sequencia reiniciada." : "Limite excedido. Sincronizacao reiniciada.");
+    const isMovingPastGoal =
+      (targetMeta.goal > targetMeta.current && nextValue > targetMeta.goal) ||
+      (targetMeta.goal < targetMeta.current && nextValue < targetMeta.goal);
+
+    if ((this.currentSubLevel === 3 || this.currentSubLevel === 4) && isMovingPastGoal) {
+      this.failCurrentPhase(this.currentSubLevel === 4 ? "Sobrecarga energética. Sequência reiniciada." : "Limite excedido. Sincronização reiniciada.", true);
       this.flashSlot(slotView, 0xff5c5c);
       this.playAudioPlaceholder(this.currentSubLevel === 4 ? AUDIO_OVERLOAD_WARNING_KEY : AUDIO_ERROR_LIMIT_KEY);
       this.playSequenceInstability(slotView);
@@ -2436,9 +2631,102 @@ export class CascataScene extends Phaser.Scene {
     const updatedMetas = biomaStoreApi.getState().metas;
     const venceu = updatedMetas.length > 0 && updatedMetas.every((meta: MetaDeBioma) => meta.current === meta.goal);
     if (this.maxMoves && this.currentMoves >= this.maxMoves && !venceu) {
-      this.failCurrentPhase(this.currentSubLevel === 7 ? "Depuracao incompleta. O nucleo do Buggie permaneceu corrompido." : "Movimentos esgotados. Recalibre a sequencia.");
+      this.failCurrentPhase("Energia encerrada. Hora de revisar a estratégia.", true);
       this.playAudioPlaceholder(this.currentSubLevel === 7 ? AUDIO_CORRUPTION_WARNING_KEY : this.currentSubLevel === 6 ? AUDIO_PREDICTION_ERROR_KEY : this.currentSubLevel === 4 ? AUDIO_OVERLOAD_WARNING_KEY : AUDIO_ERROR_LIMIT_KEY);
     }
+  }
+
+  private handleComputationalFlowDrop(operation: TipoDeOperacaoDaCascata, operationValue?: number): void {
+    const step = COMPUTATIONAL_FLOW_STEPS[this.computationalFlowStepIndex];
+    if (!step) {
+      return;
+    }
+
+    const currentMetas = biomaStoreApi.getState().metas;
+    const value = operationValue ?? this.getDefaultOperationValue(operation);
+    if (isCascataDivisionOperation(operation) && currentMetas.some((meta) => meta.current % value !== 0)) {
+      this.registerComputationalFlowMiss("Fluxo inválido: a divisão geraria energia fracionada.");
+      return;
+    }
+
+    const updatedOutputs: Record<string, number> = {};
+    currentMetas.forEach((meta) => {
+      updatedOutputs[meta.output] = this.applyOperation(meta.current, operation, operationValue);
+    });
+
+    const matchesStepGoals = currentMetas.every((meta) => updatedOutputs[meta.output] === step.goals[meta.output]);
+    this.currentMoves += 1;
+    this.updateMoveCounter();
+
+    if (!matchesStepGoals) {
+      this.playComputationalFlowAttempt(updatedOutputs, false);
+      this.registerComputationalFlowMiss("Redistribuição instável. Recalibre o próximo ciclo.");
+      return;
+    }
+
+    this.playAudioPlaceholder(isCascataDivisionOperation(operation) ? AUDIO_DIVISION_CLICK_KEY : AUDIO_ENERGY_FLOW_KEY);
+    this.computationalFlowStepIndex += 1;
+    this.activateComputationalFlowSystem(step.system);
+    this.playComputationalFlowAttempt(updatedOutputs, true);
+    this.resultText?.setColor("#bbf7d0");
+    this.resultText?.setText(step.message);
+    this.setComputationalFlowMetasForStep(this.computationalFlowStepIndex, updatedOutputs);
+  }
+
+  private setComputationalFlowMetasForStep(stepIndex: number, currentOutputs: Record<string, number>): void {
+    const nextStep = COMPUTATIONAL_FLOW_STEPS[stepIndex];
+    const nextMetas = biomaStoreApi.getState().metas.map((meta) => ({
+      ...meta,
+      initial: meta.initial,
+      current: currentOutputs[meta.output] ?? meta.current,
+      goal: nextStep?.goals[meta.output] ?? currentOutputs[meta.output] ?? meta.goal
+    }));
+
+    biomaStoreApi.setState({ metas: nextMetas });
+  }
+
+  private registerComputationalFlowMiss(message: string): void {
+    this.resultText?.setColor("#ffcf70");
+    this.resultText?.setText(message);
+    this.playAudioPlaceholder(AUDIO_ERROR_LIMIT_KEY);
+
+    if (this.maxMoves && this.currentMoves >= this.maxMoves) {
+      this.failCurrentPhase("Energia encerrada. Hora de revisar o fluxo computacional.", true);
+      this.playAudioPlaceholder(AUDIO_ERROR_LIMIT_KEY);
+    }
+  }
+
+  private playComputationalFlowAttempt(updatedOutputs: Record<string, number>, valid: boolean): void {
+    const color = valid ? 0x8cf8ff : 0xff5c5c;
+    this.slotViews.forEach((slotView) => {
+      this.flashSlot(slotView, color);
+      this.createElectricParticles(slotView, valid ? 8 : 4, color);
+    });
+
+    const metas = biomaStoreApi.getState().metas;
+    metas.forEach((meta) => {
+      const fromSlot = [...this.slotViews.values()].find((slotView) => slotView.output === meta.output);
+      if (!fromSlot) {
+        return;
+      }
+
+      this.slotViews.forEach((targetSlot) => {
+        if (targetSlot === fromSlot) {
+          return;
+        }
+
+        this.createFlowParticle(fromSlot.slot.x, fromSlot.slot.y, targetSlot.slot.x, targetSlot.slot.y, color);
+      });
+    });
+
+    if (!valid) {
+      return;
+    }
+
+    const labels = Object.entries(updatedOutputs)
+      .map(([output, value]) => `${this.getOutputLabel(output)} ${value}`)
+      .join(" | ");
+    this.resultText?.setText(labels);
   }
 
   private validateSequenceOperation(operation: TipoDeOperacaoDaCascata, slotView: SlotView): boolean {
@@ -2464,12 +2752,12 @@ export class CascataScene extends Phaser.Scene {
 
     const isCritical = (rules.criticalInvalidOperations ?? []).includes(operation);
     if (isCritical) {
-      this.failCurrentPhase("Sequencia critica: estabilize com +10 ou -10 antes de multiplicar.");
+      this.failCurrentPhase("Sequência crítica: estabilize com +10 ou -10 antes de multiplicar.", true);
       return false;
     }
 
     this.resultText?.setColor("#ffcf70");
-    this.resultText?.setText("Operacao bloqueada: estabilize a cascata antes.");
+    this.resultText?.setText("Operação bloqueada: estabilize a cascata antes.");
     return false;
   }
 
@@ -2488,38 +2776,39 @@ export class CascataScene extends Phaser.Scene {
     this.resultText?.setColor("#bbf7d0");
     this.resultText?.setText(
       this.currentSubLevel < 8
-        ? `Subnivel ${this.currentSubLevel} concluido. Preparando proxima sincronizacao...`
+        ? `Subnível ${this.currentSubLevel} concluído. Preparando próxima sincronização...`
         : "Cascata restaurada. Retornando ao mapa..."
     );
 
     if (this.currentSubLevel === 1) {
-      this.resultText?.setText("Subnivel 1 concluido. Preparando Fluxo e Refluxo...");
+      this.resultText?.setText("Subnível 1 concluído. Preparando Fluxo e Refluxo...");
       this.scheduleNextSubLevel(2, this.getPendingRestoreDuration() + 3000);
       return;
     }
 
     if (this.currentSubLevel === 2) {
-      this.resultText?.setText("Subnivel 2 concluido. Preparando Raizes Digitais...");
+      this.resultText?.setText("Subnível 2 concluído. Preparando Raízes Digitais...");
       this.scheduleNextSubLevel(3, this.getPendingRestoreDuration() + 3000);
       return;
     }
 
     if (this.currentSubLevel === 3) {
-      this.resultText?.setText("Subnivel 3 concluido. Preparando Sequencia Instavel...");
+      this.resultText?.setText("Subnível 3 concluído. Preparando Sequência Instável...");
       this.scheduleNextSubLevel(4, this.getPendingRestoreDuration() + 3000);
       return;
     }
 
     if (this.currentSubLevel === 4) {
-      this.resultText?.setText("Subnivel 4 concluido. Preparando Fluxo Computacional...");
+      this.resultText?.setText("Subnível 4 concluído. Preparando Fluxo Computacional...");
       this.scheduleNextSubLevel(5, this.getPendingRestoreDuration() + 3000);
       return;
     }
 
     if (this.currentSubLevel === 5) {
-      this.resultText?.setText("Fluxo Computacional otimizado. Preparando Sistema Central...");
+      this.resultText?.setText("Fluxo Computacional restaurado. Energia redistribuída pelo ecossistema...");
       this.playAudioPlaceholder(AUDIO_OPTIMIZATION_SUCCESS_KEY);
-      this.scheduleNextSubLevel(6, this.getPendingRestoreDuration() + 3000);
+      this.revealCompleteComputationalFlow();
+      this.scheduleNextSubLevel(6, this.getPendingRestoreDuration() + 6500);
       return;
     }
 
@@ -2541,7 +2830,7 @@ export class CascataScene extends Phaser.Scene {
       const idealMoves = SUB_LEVELS[this.currentSubLevel]?.optimizationRules?.idealMoves ?? this.currentMoves;
       this.resultText?.setText(
         this.currentMoves <= idealMoves
-          ? "Sequencia otimizada. Cascata totalmente restaurada."
+          ? "Sequência otimizada. Cascata totalmente restaurada."
           : "Cascata restaurada. Sistema estabilizado."
       );
       this.playFinalRestorationFeedback();
@@ -2603,29 +2892,15 @@ export class CascataScene extends Phaser.Scene {
         slotView.valueText.setShadow(0, 0, alvoConcluido ? "#7bf7ff" : "#1b8ea8", alvoConcluido ? 10 : 4, true, true);
       }
 
-      if (this.currentSubLevel === 6) {
-        slotView.meterFill.setFillStyle(alvoConcluido ? 0xd8b4fe : 0x7dd3fc, 1);
-        slotView.labelText.setShadow(0, 0, alvoConcluido ? "#d8b4fe" : "#38d5ff", alvoConcluido ? 14 : 6, true, true);
-        slotView.valueText.setShadow(0, 0, alvoConcluido ? "#f0abfc" : "#7dd3fc", alvoConcluido ? 12 : 5, true, true);
-      }
-
-      if (this.currentSubLevel === 7) {
-        slotView.meterFill.setFillStyle(alvoConcluido ? 0x86efac : 0xff5c9a, 1);
-        slotView.labelText.setShadow(0, 0, alvoConcluido ? "#7df7c1" : "#ff306f", alvoConcluido ? 15 : 7, true, true);
-        slotView.valueText.setShadow(0, 0, alvoConcluido ? "#b9ffd9" : "#ff5c9a", alvoConcluido ? 13 : 6, true, true);
-      }
-
-      if (this.currentSubLevel === 8) {
-        slotView.meterFill.setFillStyle(alvoConcluido ? 0x7df7ff : 0xff306f, 1);
-        slotView.labelText.setShadow(0, 0, alvoConcluido ? "#7df7ff" : "#ff306f", alvoConcluido ? 16 : 8, true, true);
-        slotView.valueText.setShadow(0, 0, alvoConcluido ? "#b9ffd9" : "#ff5c9a", alvoConcluido ? 14 : 7, true, true);
-      }
-
-      if (alvoConcluido) {
+      if (alvoConcluido && this.currentSubLevel !== 5) {
         this.restoreTopic(meta.output);
         desafiosConcluidos += 1;
       }
     });
+
+    if (this.currentSubLevel === 5) {
+      desafiosConcluidos = this.computationalFlowStepIndex;
+    }
 
     biomaStoreApi.getState().registrarMetasConcluidas(
       this.getCurrentLevelProgressId(),
@@ -2672,7 +2947,7 @@ export class CascataScene extends Phaser.Scene {
     this.redrawEnergyPanel();
   }
 
-  private failCurrentPhase(message: string): void {
+  private failCurrentPhase(message: string, showDebugPopup = false): void {
     this.phaseFailed = true;
     this.resultText?.setColor("#ffb4a8");
     this.resultText?.setText(message);
@@ -2681,6 +2956,208 @@ export class CascataScene extends Phaser.Scene {
       button.sprite.setTint(0x667080);
     });
     this.moveCounterText?.setColor("#ff8a80");
+    if (showDebugPopup) {
+      this.showDebuggingPopup();
+    }
+  }
+
+  private showDebuggingPopup(): void {
+    if (this.isDebugPopupOpen) {
+      return;
+    }
+
+    this.isDebugPopupOpen = true;
+    const overlay = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x02070b, 0.46)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(90);
+
+    const panelWidth = Math.min(760, this.scale.width - 56);
+    const panelHeight = 370;
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+    const frame = this.add.graphics();
+    drawFantasyPanelFrame(frame, {
+      width: panelWidth,
+      height: panelHeight,
+      glowColor: 0xff4f4f,
+      glowAlpha: 0.2,
+      accentBorderColor: 0xff4f4f
+    });
+    frame.fillStyle(FANTASY_PANEL_COLORS.titleSurface, 0.94);
+    frame.fillRoundedRect(18, 16, panelWidth - 36, 50, 5);
+    frame.lineStyle(2, 0xff6b6b, 0.82);
+    frame.strokeRoundedRect(19, 17, panelWidth - 38, 48, 4);
+
+    const robotColumnCenterX = 124;
+    const textColumnLeft = 222;
+    const textColumnWidth = panelWidth - textColumnLeft - 42;
+    const textColumnCenterX = textColumnLeft + textColumnWidth / 2;
+    const messageFrame = this.add.graphics();
+    messageFrame.fillStyle(0x160909, 0.18);
+    messageFrame.fillRoundedRect(textColumnLeft, 92, textColumnWidth, 168, 7);
+    messageFrame.lineStyle(2, 0xff4f4f, 0.72);
+    messageFrame.strokeRoundedRect(textColumnLeft + 1, 93, textColumnWidth - 2, 166, 6);
+
+    const robot = this.add.image(robotColumnCenterX, 188, this.getDominantDebugRobotTextureKey());
+    this.setRobotButtonVisualSize(robot, 118);
+    robot.setTint(0xf3fbff).setAlpha(0.58);
+
+    const title = this.add.text(panelWidth / 2, 41, "Debugging de Energia", {
+      fontFamily: "Georgia",
+      fontSize: "25px",
+      fontStyle: "bold",
+      color: "#f2c45d",
+      stroke: "#24170a",
+      strokeThickness: 4,
+      align: "center"
+    });
+    title.setOrigin(0.5);
+
+    const message = this.add.text(textColumnCenterX, 176, this.selectDebugMessage(), {
+      fontFamily: "Georgia",
+      fontSize: "29px",
+      color: "#f5f0df",
+      stroke: "#3d0808",
+      strokeThickness: 4,
+      align: "center",
+      lineSpacing: 16,
+      wordWrap: { width: textColumnWidth - 44, useAdvancedWrap: true }
+    });
+    message.setOrigin(0.5);
+
+    const retryButton = this.createDebugPopupButton(
+      panelWidth / 2,
+      panelHeight - 48,
+      230,
+      "Tentar Novamente",
+      0x73f7ff,
+      () => {
+        this.closeDebugPopup();
+        this.handleReset();
+      }
+    );
+
+    const popup = this.add.container(centerX - panelWidth / 2, centerY - panelHeight / 2 + 16, [
+      frame,
+      messageFrame,
+      robot,
+      title,
+      message,
+      retryButton
+    ]);
+    popup.setScrollFactor(0).setDepth(91).setAlpha(0);
+    this.debugPopupObjects.push(overlay, popup);
+
+    this.tweens.add({
+      targets: popup,
+      alpha: 1,
+      y: centerY - panelHeight / 2,
+      duration: 260,
+      ease: "Back.Out"
+    });
+    this.tweens.add({
+      targets: robot,
+      y: robot.y - 8,
+      duration: 1150,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private createDebugPopupButton(
+    x: number,
+    y: number,
+    width: number,
+    label: string,
+    accentColor: number,
+    onClick: () => void
+  ): Phaser.GameObjects.Container {
+    const height = 46;
+    const background = this.add.graphics();
+    background.fillStyle(0x17130f, 0.92);
+    background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
+    background.lineStyle(2, accentColor, 0.9);
+    background.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 6);
+
+    const text = this.add.text(0, 0, label, {
+      fontFamily: "Georgia",
+      fontSize: "17px",
+      fontStyle: "bold",
+      color: "#fff5d8",
+      stroke: "#24170a",
+      strokeThickness: 3
+    });
+    text.setOrigin(0.5);
+
+    const button = this.add.container(x, y, [background, text]);
+    button.setSize(width, height);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      Phaser.Geom.Rectangle.Contains
+    );
+    button.on("pointerover", () => {
+      background.clear();
+      background.fillStyle(accentColor, 0.2);
+      background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
+      background.lineStyle(2, accentColor, 1);
+      background.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 6);
+      text.setColor("#ffffff");
+    });
+    button.on("pointerout", () => {
+      background.clear();
+      background.fillStyle(0x17130f, 0.92);
+      background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
+      background.lineStyle(2, accentColor, 0.9);
+      background.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 6);
+      text.setColor("#fff5d8");
+    });
+    button.on("pointerdown", onClick);
+    return button;
+  }
+
+  private selectDebugMessage(): string {
+    const messages = [...DEBUG_MESSAGES, ...(DEBUG_MESSAGES_BY_PHASE[this.currentSubLevel] ?? [])];
+    const availableMessages = messages.filter((message) => message !== this.lastDebugMessage);
+    const pool = availableMessages.length > 0 ? availableMessages : messages;
+    const selected = Phaser.Utils.Array.GetRandom(pool);
+    this.lastDebugMessage = selected;
+    return selected;
+  }
+
+  private getDominantDebugRobotTextureKey(): string {
+    if (this.currentSubLevel === 4 || this.currentSubLevel === 6 || this.currentSubLevel === 8) {
+      return ROBO_MULTIPLICACAO_KEY;
+    }
+
+    if (this.currentSubLevel === 5 || this.currentSubLevel === 7) {
+      return ROBO_DIVISAO_KEY;
+    }
+
+    if (this.currentSubLevel === 2 || this.currentSubLevel === 3) {
+      return ROBO_SUBTRACAO_KEY;
+    }
+
+    return ROBO_ADICAO_KEY;
+  }
+
+  private closeDebugPopup(): void {
+    if (this.debugPopupObjects.length === 0) {
+      this.isDebugPopupOpen = false;
+      return;
+    }
+
+    this.debugPopupObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      if (object instanceof Phaser.GameObjects.Container) {
+        object.list.forEach((child) => this.tweens.killTweensOf(child));
+      }
+      object.destroy();
+    });
+    this.debugPopupObjects = [];
+    this.isDebugPopupOpen = false;
   }
 
   private updateSequenceLocks(): void {
@@ -2839,7 +3316,7 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.resultText?.setColor("#b9ffd9");
-    this.resultText?.setText(`Sequencia programada executada: ${sequenceLength} passos automatizados.`);
+    this.resultText?.setText(`Sequência programada executada: ${sequenceLength} passos automatizados.`);
     this.flashSlot(slotView, 0x7df7ff);
     this.createElectricParticles(slotView, 16, 0x7df7ff);
     this.createElectricParticles(slotView, 10, 0x57ffb0);
@@ -2930,6 +3407,740 @@ export class CascataScene extends Phaser.Scene {
     });
   }
 
+  private activateComputationalFlowForOutput(output: string): void {
+    if (this.currentSubLevel !== 5) {
+      return;
+    }
+
+    if (output === "Flores") {
+      this.activateComputationalFlowSystem("condutores");
+      return;
+    }
+
+    if (output === "Solo") {
+      this.activateComputationalFlowSystem("portais");
+      return;
+    }
+
+    if (output === "Arvores") {
+      this.activateComputationalFlowSystem("distribuidores");
+    }
+  }
+
+  private activateComputationalFlowSystem(system: ComputationalFlowSystem): void {
+    if (this.activatedComputationalSystems.has(system)) {
+      return;
+    }
+
+    this.activatedComputationalSystems.add(system);
+
+    if (system === "condutores") {
+      this.createEnergyPath("cascade-to-condutores", 0x8cf8ff, 3, 0.7);
+      this.createEnergyPath("condutores-to-portais", 0xf8e6a0, 2, 0.48);
+      this.createFlowParticles("cascade-to-condutores", 0x8cf8ff, 720);
+      this.createFlowParticles("condutores-to-portais", 0xf8e6a0, 980);
+      this.createEnergyPulse("cascade-to-condutores", 0xffffff, 920);
+      return;
+    }
+
+    if (system === "portais") {
+      this.createPortalNode("portais");
+      this.createEnergyPath("portais-to-distribuidores", 0x7df7ff, 3, 0.62);
+      this.createFlowParticles("portais-to-distribuidores", 0x7df7ff, 760);
+      this.createEnergyPulse("portais-to-distribuidores", 0xf8e6a0, 860);
+      return;
+    }
+
+    this.createPortalNode("distribuidores");
+    this.createEnergyPath("distribuidores-to-ecosystem-left", 0xf8e6a0, 2, 0.42);
+    this.createEnergyPath("distribuidores-to-ecosystem-right", 0x8cf8ff, 2, 0.42);
+    this.createFlowParticles("distribuidores-to-ecosystem-left", 0xf8e6a0, 1040);
+    this.createFlowParticles("distribuidores-to-ecosystem-right", 0x8cf8ff, 1120);
+    this.createSynchronizedEcosystemPulse();
+  }
+
+  private createEnergyPath(
+    route: ComputationalFlowRoute,
+    color = 0x8cf8ff,
+    lineWidth = 3,
+    alpha = 0.58
+  ): Phaser.GameObjects.Graphics {
+    const path = this.add.graphics().setDepth(3.2).setAlpha(0);
+    path.setBlendMode(Phaser.BlendModes.ADD);
+    this.computationalFlowPaths.set(route, { route, graphics: path, color, lineWidth, alpha });
+    this.computationalFlowObjects.push(path);
+    this.drawComputationalEnergyPath(this.computationalFlowPaths.get(route));
+
+    this.tweens.add({
+      targets: path,
+      alpha: 1,
+      duration: 520,
+      ease: "Sine.Out"
+    });
+
+    this.tweens.add({
+      targets: path,
+      alpha: 0.72,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+
+    return path;
+  }
+
+  private createPortalNode(system: ComputationalFlowSystem): Phaser.GameObjects.Container | undefined {
+    if (this.computationalFlowNodes.has(system)) {
+      return this.computationalFlowNodes.get(system)?.container;
+    }
+
+    const position = this.getComputationalFlowNodePosition(system);
+    if (!position) {
+      return undefined;
+    }
+
+    const outer = this.add.circle(0, 0, system === "portais" ? 42 : 34, 0x7df7ff, 0);
+    outer.setStrokeStyle(3, system === "portais" ? 0x7df7ff : 0xf8e6a0, system === "portais" ? 0.56 : 0.46);
+    const middle = this.add.circle(0, 0, system === "portais" ? 28 : 23, 0x8cf8ff, 0.1);
+    middle.setStrokeStyle(2, 0xffffff, 0.36);
+    const core = this.add.circle(0, 0, system === "portais" ? 8 : 7, system === "portais" ? 0x8cf8ff : 0xf8e6a0, 0.72);
+    const orbit = this.add.rectangle(system === "portais" ? 36 : 28, 0, system === "portais" ? 10 : 8, 4, 0xffffff, 0.8);
+    const container = this.add.container(position.x, position.y, [outer, middle, core, orbit]).setDepth(3.4).setAlpha(0);
+    container.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.computationalFlowNodes.set(system, { system, container });
+    this.computationalFlowObjects.push(container);
+
+    this.tweens.add({
+      targets: container,
+      alpha: system === "portais" ? 0.82 : 0.66,
+      duration: 520,
+      ease: "Sine.Out"
+    });
+    this.tweens.add({
+      targets: container,
+      angle: 360,
+      duration: system === "portais" ? 5200 : 3800,
+      repeat: -1,
+      ease: "Linear"
+    });
+    this.tweens.add({
+      targets: [outer, middle],
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: system === "portais" ? 0.78 : 0.58,
+      duration: 1280,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+
+    return container;
+  }
+
+  private createEnergyPulse(route: ComputationalFlowRoute, color = 0xffffff, duration = 760): void {
+    const points = this.getComputationalFlowRoutePoints(route);
+    if (points.length < 2) {
+      return;
+    }
+
+    const start = points[0];
+    if (!start) {
+      return;
+    }
+
+    const pulse = this.add.circle(start.x, start.y, 4, color, 0.92).setDepth(3.6);
+    pulse.setBlendMode(Phaser.BlendModes.ADD);
+    this.computationalFlowObjects.push(pulse);
+
+    const progress = { value: 0 };
+    this.tweens.add({
+      targets: progress,
+      value: 1,
+      duration,
+      ease: "Sine.InOut",
+      onUpdate: () => {
+        const point = this.getPointOnPolyline(points, progress.value);
+        pulse.setPosition(point.x, point.y);
+      },
+      onComplete: () => {
+        this.computationalFlowObjects = this.computationalFlowObjects.filter((object) => object !== pulse);
+        pulse.destroy();
+      }
+    });
+  }
+
+  private createFlowParticles(route: ComputationalFlowRoute, color = 0x8cf8ff, delay = 900): void {
+    this.createEnergyPulse(route, color, delay * 0.72);
+    const event = this.time.addEvent({
+      delay,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 5 || !this.activatedComputationalSystems.size) {
+          return;
+        }
+
+        this.createEnergyPulse(route, color, delay * 0.72);
+      }
+    });
+    this.computationalFlowEvents.push(event);
+  }
+
+  private createSynchronizedEcosystemPulse(): void {
+    const event = this.time.addEvent({
+      delay: 1320,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 5) {
+          return;
+        }
+
+        const distributorPosition = this.getComputationalFlowNodePosition("distribuidores");
+        if (!distributorPosition) {
+          return;
+        }
+
+        const pulse = this.add.circle(distributorPosition.x, distributorPosition.y, 18, 0xf8e6a0, 0).setDepth(3.6);
+        pulse.setStrokeStyle(3, 0xf8e6a0, 0.48);
+        pulse.setBlendMode(Phaser.BlendModes.ADD);
+        this.computationalFlowObjects.push(pulse);
+        this.tweens.add({
+          targets: pulse,
+          radius: 72,
+          alpha: 0,
+          duration: 760,
+          ease: "Sine.Out",
+          onComplete: () => {
+            this.computationalFlowObjects = this.computationalFlowObjects.filter((object) => object !== pulse);
+            pulse.destroy();
+          }
+        });
+      }
+    });
+
+    this.computationalFlowEvents.push(event);
+  }
+
+  private revealCompleteComputationalFlow(): void {
+    if (this.currentSubLevel !== 5) {
+      return;
+    }
+
+    this.activateComputationalFlowSystem("condutores");
+    this.activateComputationalFlowSystem("portais");
+    this.activateComputationalFlowSystem("distribuidores");
+
+    const routes: ComputationalFlowRoute[] = [
+      "cascade-to-condutores",
+      "condutores-to-portais",
+      "portais-to-distribuidores",
+      "distribuidores-to-ecosystem-left",
+      "distribuidores-to-ecosystem-right"
+    ];
+    routes.forEach((route, index) => {
+      this.time.delayedCall(index * 150, () => {
+        this.createEnergyPulse(route, index % 2 === 0 ? 0x8cf8ff : 0xf8e6a0, 980);
+      });
+    });
+
+    const centerX = this.scale.width * 0.5;
+    const centerY = this.scale.height * 0.58;
+    const wave = this.add.circle(centerX, centerY, 28, 0x8cf8ff, 0).setDepth(3.6);
+    wave.setStrokeStyle(4, 0x8cf8ff, 0.62);
+    wave.setBlendMode(Phaser.BlendModes.ADD);
+    this.computationalFlowObjects.push(wave);
+    this.tweens.add({
+      targets: wave,
+      radius: 190,
+      alpha: 0,
+      duration: 1400,
+      ease: "Sine.Out",
+      onComplete: () => {
+        this.computationalFlowObjects = this.computationalFlowObjects.filter((object) => object !== wave);
+        wave.destroy();
+      }
+    });
+  }
+
+  private layoutComputationalFlowVisuals(): void {
+    this.computationalFlowPaths.forEach((path) => this.drawComputationalEnergyPath(path));
+    this.computationalFlowNodes.forEach((node) => {
+      const position = this.getComputationalFlowNodePosition(node.system);
+      if (position) {
+        node.container.setPosition(position.x, position.y);
+      }
+    });
+  }
+
+  private drawComputationalEnergyPath(path?: ComputationalEnergyPath): void {
+    if (!path) {
+      return;
+    }
+
+    const points = this.getComputationalFlowRoutePoints(path.route);
+    path.graphics.clear();
+    if (points.length < 2) {
+      return;
+    }
+
+    path.graphics.lineStyle(path.lineWidth + 8, path.color, path.alpha * 0.16);
+    this.strokePolyline(path.graphics, points);
+    path.graphics.lineStyle(path.lineWidth + 2, path.color, path.alpha * 0.3);
+    this.strokePolyline(path.graphics, points);
+    path.graphics.lineStyle(path.lineWidth, path.color, path.alpha);
+    this.strokePolyline(path.graphics, points);
+
+    points.forEach((point, index) => {
+      const endpointAlpha = index === 0 || index === points.length - 1 ? 0.22 : 0.12;
+      path.graphics.fillStyle(index % 2 === 0 ? path.color : 0xffffff, endpointAlpha);
+      path.graphics.fillCircle(point.x, point.y, index === 0 || index === points.length - 1 ? 9 : 5);
+    });
+  }
+
+  private strokePolyline(graphics: Phaser.GameObjects.Graphics, points: Phaser.Math.Vector2[]): void {
+    const start = points[0];
+    if (!start) {
+      return;
+    }
+
+    graphics.beginPath();
+    graphics.moveTo(start.x, start.y);
+    points.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
+    graphics.strokePath();
+  }
+
+  private getComputationalFlowRoutePoints(route: ComputationalFlowRoute): Phaser.Math.Vector2[] {
+    const cascade = new Phaser.Math.Vector2(this.scale.width * 0.42, this.scale.height * 0.42);
+    const condutores = this.getComputationalFlowSlotPoint("Flores");
+    const portais = this.getComputationalFlowSlotPoint("Solo");
+    const distribuidores = this.getComputationalFlowSlotPoint("Arvores");
+    const ecosystemLeft = new Phaser.Math.Vector2(this.scale.width * 0.28, this.scale.height * 0.58);
+    const ecosystemRight = new Phaser.Math.Vector2(this.scale.width * 0.68, this.scale.height * 0.55);
+
+    switch (route) {
+      case "cascade-to-condutores":
+        return condutores ? [cascade, new Phaser.Math.Vector2(cascade.x + 40, condutores.y - 90), condutores] : [];
+      case "condutores-to-portais":
+        return condutores && portais
+          ? [condutores, new Phaser.Math.Vector2((condutores.x + portais.x) / 2, condutores.y - 80), portais]
+          : [];
+      case "portais-to-distribuidores":
+        return portais && distribuidores
+          ? [portais, new Phaser.Math.Vector2((portais.x + distribuidores.x) / 2, portais.y - 64), distribuidores]
+          : [];
+      case "distribuidores-to-ecosystem-left":
+        return distribuidores
+          ? [distribuidores, new Phaser.Math.Vector2(distribuidores.x - 160, distribuidores.y - 120), ecosystemLeft]
+          : [];
+      case "distribuidores-to-ecosystem-right":
+        return distribuidores
+          ? [distribuidores, new Phaser.Math.Vector2(distribuidores.x + 140, distribuidores.y - 130), ecosystemRight]
+          : [];
+      default:
+        return [];
+    }
+  }
+
+  private getComputationalFlowNodePosition(system: ComputationalFlowSystem): Phaser.Math.Vector2 | undefined {
+    if (system === "portais") {
+      return this.getComputationalFlowSlotPoint("Solo");
+    }
+
+    if (system === "distribuidores") {
+      return this.getComputationalFlowSlotPoint("Arvores");
+    }
+
+    return this.getComputationalFlowSlotPoint("Flores");
+  }
+
+  private getComputationalFlowSlotPoint(output: string): Phaser.Math.Vector2 | undefined {
+    const slotView = [...this.slotViews.values()].find((slot) => slot.output === output);
+    if (!slotView) {
+      return undefined;
+    }
+
+    return new Phaser.Math.Vector2(slotView.slot.x, slotView.slot.y - 18);
+  }
+
+  private getPointOnPolyline(points: Phaser.Math.Vector2[], progress: number): Phaser.Math.Vector2 {
+    const firstPoint = points[0];
+    if (!firstPoint || points.length === 1) {
+      return firstPoint?.clone() ?? new Phaser.Math.Vector2(0, 0);
+    }
+
+    const segments = points.slice(1).map((point, index) => {
+      const start = points[index] ?? firstPoint;
+      return {
+        start,
+        end: point,
+        length: Phaser.Math.Distance.Between(start.x, start.y, point.x, point.y)
+      };
+    });
+    const totalLength = segments.reduce((sum, segment) => sum + segment.length, 0);
+    const targetDistance = Phaser.Math.Clamp(progress, 0, 1) * totalLength;
+    let traveled = 0;
+
+    for (const segment of segments) {
+      if (traveled + segment.length >= targetDistance) {
+        const localProgress = segment.length === 0 ? 0 : (targetDistance - traveled) / segment.length;
+        return new Phaser.Math.Vector2(
+          Phaser.Math.Linear(segment.start.x, segment.end.x, localProgress),
+          Phaser.Math.Linear(segment.start.y, segment.end.y, localProgress)
+        );
+      }
+
+      traveled += segment.length;
+    }
+
+    return points[points.length - 1]?.clone() ?? firstPoint.clone();
+  }
+
+  private activateEnergySync(output: string): void {
+    if (this.currentSubLevel !== 6) {
+      return;
+    }
+
+    if (output === "Flores") {
+      this.createEnergyNetwork(["crystal-to-cascade", "crystal-to-conductors"], 0.42);
+      this.createCascadeOrb(0.42);
+      this.intensifyCascadeOrb(0.5);
+      return;
+    }
+
+    if (output === "Solo") {
+      this.createEnergyNetwork(["crystal-to-portals", "crystal-to-reservoirs"], 0.58);
+      this.createPhase6FlowParticles("crystal-to-cascade", 0x8cf8ff, 980);
+      this.createPhase6FlowParticles("crystal-to-conductors", 0xf8e6a0, 1180);
+      this.createPhase6FlowParticles("crystal-to-portals", 0x8cf8ff, 880);
+      this.intensifyCascadeOrb(0.72);
+      return;
+    }
+
+    if (output === "Arvores") {
+      this.createEnergyNetwork(["crystal-to-distributors"], 0.68);
+      this.createPhase6FlowParticles("crystal-to-distributors", 0xf8e6a0, 920);
+      this.createPhase6FlowParticles("crystal-to-reservoirs", 0x8cf8ff, 1240);
+      this.activateCompleteEnergySync();
+      this.intensifyCascadeOrb(1);
+    }
+  }
+
+  private createEnergyNetwork(routes: Phase6EnergyRoute[], alpha = 0.55): void {
+    routes.forEach((route) => {
+      if (this.phase6EnergyPaths.has(route)) {
+        return;
+      }
+
+      const color = route === "crystal-to-distributors" || route === "crystal-to-reservoirs" ? 0xf8e6a0 : 0x8cf8ff;
+      const path = this.add.graphics().setDepth(3.15).setAlpha(0);
+      path.setBlendMode(Phaser.BlendModes.ADD);
+
+      this.phase6EnergyPaths.set(route, {
+        route,
+        graphics: path,
+        color,
+        lineWidth: route === "crystal-to-cascade" ? 3 : 2,
+        alpha
+      });
+      this.phase6EnergyObjects.push(path);
+      this.drawPhase6EnergyPath(this.phase6EnergyPaths.get(route));
+
+      this.tweens.add({
+        targets: path,
+        alpha: 1,
+        duration: 560,
+        ease: "Sine.Out"
+      });
+      this.tweens.add({
+        targets: path,
+        alpha: 0.72,
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.InOut"
+      });
+    });
+  }
+
+  private createPhase6EnergyPulse(route: Phase6EnergyRoute, color = 0xffffff, duration = 900): void {
+    const points = this.getPhase6EnergyRoutePoints(route);
+    const start = points[0];
+    if (!start || points.length < 2) {
+      return;
+    }
+
+    const pulse = this.add.circle(start.x, start.y, 4, color, 0.94).setDepth(3.75);
+    pulse.setBlendMode(Phaser.BlendModes.ADD);
+    this.phase6EnergyObjects.push(pulse);
+
+    const progress = { value: 0 };
+    this.tweens.add({
+      targets: progress,
+      value: 1,
+      duration,
+      ease: "Sine.InOut",
+      onUpdate: () => {
+        const point = this.getPointOnPolyline(points, progress.value);
+        pulse.setPosition(point.x, point.y);
+        pulse.setScale(Phaser.Math.Linear(0.82, 1.2, Math.sin(progress.value * Math.PI)));
+      },
+      onComplete: () => {
+        this.phase6EnergyObjects = this.phase6EnergyObjects.filter((object) => object !== pulse);
+        pulse.destroy();
+      }
+    });
+  }
+
+  private createPhase6FlowParticles(route: Phase6EnergyRoute, color = 0x8cf8ff, delay = 1000): void {
+    if (this.phase6ActivatedStages.has(`pulse-${route}`)) {
+      return;
+    }
+
+    this.phase6ActivatedStages.add(`pulse-${route}`);
+    this.createPhase6EnergyPulse(route, color, delay * 0.72);
+
+    const event = this.time.addEvent({
+      delay,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 6 || !this.phase6EnergyPaths.has(route)) {
+          return;
+        }
+
+        this.createPhase6EnergyPulse(route, color, delay * 0.72);
+      }
+    });
+    this.phase6EnergyEvents.push(event);
+  }
+
+  private createCascadeOrb(intensity = 0.5): Phaser.GameObjects.Container {
+    if (this.phase6CascadeOrb) {
+      return this.phase6CascadeOrb;
+    }
+
+    const position = this.getPhase6EnergyNodePosition("orb");
+    const glow = this.add.circle(0, 0, 38, 0x8cf8ff, 0.16);
+    const halo = this.add.circle(0, 0, 30, 0x8cf8ff, 0);
+    halo.setStrokeStyle(3, 0x8cf8ff, 0.36);
+    const core = this.add.circle(0, 0, 12, 0xf4ffff, 0.82);
+    const smallCore = this.add.circle(0, 0, 6, 0xf8e6a0, 0.62);
+    const orbitA = this.add.circle(28, 0, 3, 0xffffff, 0.82);
+    const orbitB = this.add.circle(-20, 16, 2.5, 0xf8e6a0, 0.74);
+    const orbitC = this.add.circle(10, -24, 2.5, 0x8cf8ff, 0.72);
+    const orbitLayer = this.add.container(0, 0, [orbitA, orbitB, orbitC]);
+
+    const orb = this.add
+      .container(position.x, position.y, [glow, halo, core, smallCore, orbitLayer])
+      .setDepth(3.9)
+      .setAlpha(0);
+    orb.setBlendMode(Phaser.BlendModes.ADD);
+    orb.setData("baseAlpha", intensity);
+
+    this.phase6CascadeOrb = orb;
+    this.phase6EnergyObjects.push(orb);
+
+    this.tweens.add({
+      targets: orb,
+      alpha: intensity,
+      duration: 540,
+      ease: "Sine.Out"
+    });
+    this.tweens.add({
+      targets: [glow, core, smallCore],
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: 1,
+      duration: 1280,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+    this.tweens.add({
+      targets: halo,
+      angle: 360,
+      duration: 5200,
+      repeat: -1,
+      ease: "Linear"
+    });
+    this.tweens.add({
+      targets: orbitLayer,
+      angle: 360,
+      duration: 4200,
+      repeat: -1,
+      ease: "Linear"
+    });
+    this.tweens.add({
+      targets: [orbitA, orbitB, orbitC],
+      alpha: 0.28,
+      duration: 1100,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+
+    return orb;
+  }
+
+  private intensifyCascadeOrb(intensity: number): void {
+    const orb = this.createCascadeOrb(intensity);
+    orb.setData("baseAlpha", intensity);
+    this.tweens.add({
+      targets: orb,
+      alpha: intensity,
+      scaleX: Phaser.Math.Linear(0.96, 1.08, intensity),
+      scaleY: Phaser.Math.Linear(0.96, 1.08, intensity),
+      duration: 520,
+      ease: "Sine.Out"
+    });
+  }
+
+  private activateCompleteEnergySync(): void {
+    if (this.currentSubLevel !== 6 || this.phase6ActivatedStages.has("full-sync")) {
+      return;
+    }
+
+    this.phase6ActivatedStages.add("full-sync");
+    const center = this.getPhase6EnergyNodePosition("crystal");
+    const event = this.time.addEvent({
+      delay: 1360,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 6) {
+          return;
+        }
+
+        const wave = this.add.circle(center.x, center.y, 20, 0x8cf8ff, 0).setDepth(3.65);
+        wave.setStrokeStyle(3, 0x8cf8ff, 0.34);
+        wave.setBlendMode(Phaser.BlendModes.ADD);
+        this.phase6EnergyObjects.push(wave);
+        this.tweens.add({
+          targets: wave,
+          radius: 86,
+          alpha: 0,
+          duration: 820,
+          ease: "Sine.Out",
+          onComplete: () => {
+            this.phase6EnergyObjects = this.phase6EnergyObjects.filter((object) => object !== wave);
+            wave.destroy();
+          }
+        });
+      }
+    });
+    this.phase6EnergyEvents.push(event);
+  }
+
+  private layoutPhase6EnergyNetwork(): void {
+    this.phase6EnergyPaths.forEach((path) => this.drawPhase6EnergyPath(path));
+    if (this.phase6CascadeOrb) {
+      const position = this.getPhase6EnergyNodePosition("orb");
+      this.phase6CascadeOrb.setPosition(position.x, position.y);
+    }
+  }
+
+  private drawPhase6EnergyPath(path?: Phase6EnergyPath): void {
+    if (!path) {
+      return;
+    }
+
+    const points = this.getPhase6EnergyRoutePoints(path.route);
+    path.graphics.clear();
+    if (points.length < 2) {
+      return;
+    }
+
+    path.graphics.lineStyle(path.lineWidth + 8, path.color, path.alpha * 0.12);
+    this.strokePolyline(path.graphics, points);
+    path.graphics.lineStyle(path.lineWidth + 3, path.color, path.alpha * 0.24);
+    this.strokePolyline(path.graphics, points);
+    path.graphics.lineStyle(path.lineWidth, path.color, path.alpha);
+    this.strokePolyline(path.graphics, points);
+
+    points.forEach((point, index) => {
+      const endpoint = index === 0 || index === points.length - 1;
+      path.graphics.fillStyle(index % 2 === 0 ? path.color : 0xffffff, endpoint ? 0.2 : 0.1);
+      path.graphics.fillCircle(point.x, point.y, endpoint ? 8 : 4);
+    });
+  }
+
+  private getPhase6EnergyRoutePoints(route: Phase6EnergyRoute): Phaser.Math.Vector2[] {
+    const crystal = this.getPhase6EnergyNodePosition("crystal");
+    const cascade = this.getPhase6EnergyNodePosition("cascade");
+    const portals = this.getPhase6EnergyNodePosition("portals");
+    const distributors = this.getPhase6EnergyNodePosition("distributors");
+    const reservoirs = this.getPhase6EnergyNodePosition("reservoirs");
+    const conductors = this.getPhase6EnergyNodePosition("conductors");
+
+    switch (route) {
+      case "crystal-to-cascade":
+        return [crystal, new Phaser.Math.Vector2(crystal.x - 120, crystal.y - 120), cascade];
+      case "crystal-to-portals":
+        return [crystal, new Phaser.Math.Vector2((crystal.x + portals.x) / 2, crystal.y - 90), portals];
+      case "crystal-to-distributors":
+        return [crystal, new Phaser.Math.Vector2((crystal.x + distributors.x) / 2, distributors.y - 120), distributors];
+      case "crystal-to-reservoirs":
+        return [crystal, new Phaser.Math.Vector2(crystal.x + 165, crystal.y + 18), reservoirs];
+      case "crystal-to-conductors":
+        return [crystal, new Phaser.Math.Vector2(crystal.x - 170, crystal.y + 58), conductors];
+      default:
+        return [];
+    }
+  }
+
+  private getPhase6EnergyNodePosition(node: string): Phaser.Math.Vector2 {
+    const crystal = this.getComputationalFlowSlotPoint("Flores") ?? new Phaser.Math.Vector2(this.scale.width * 0.42, this.scale.height * 0.48);
+    const solo = this.getComputationalFlowSlotPoint("Solo") ?? new Phaser.Math.Vector2(this.scale.width * 0.58, this.scale.height * 0.5);
+    const arvores = this.getComputationalFlowSlotPoint("Arvores") ?? new Phaser.Math.Vector2(this.scale.width * 0.5, this.scale.height * 0.46);
+
+    switch (node) {
+      case "crystal":
+        return crystal;
+      case "orb":
+        return new Phaser.Math.Vector2(crystal.x - 62, crystal.y - 96);
+      case "cascade":
+        return new Phaser.Math.Vector2(this.scale.width * 0.42, this.scale.height * 0.37);
+      case "portals":
+        return solo;
+      case "distributors":
+        return arvores;
+      case "reservoirs":
+        return new Phaser.Math.Vector2(solo.x + 138, solo.y + 28);
+      case "conductors":
+        return new Phaser.Math.Vector2(crystal.x - 145, crystal.y + 88);
+      default:
+        return crystal;
+    }
+  }
+
+  private clearComputationalFlowVisuals(): void {
+    this.computationalFlowEvents.forEach((event) => event.remove(false));
+    this.computationalFlowEvents = [];
+    this.computationalFlowObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.computationalFlowObjects = [];
+    this.computationalFlowPaths.clear();
+    this.computationalFlowNodes.clear();
+    this.activatedComputationalSystems.clear();
+    this.clearPhase6EnergyNetwork();
+  }
+
+  private clearPhase6EnergyNetwork(): void {
+    this.phase6EnergyEvents.forEach((event) => event.remove(false));
+    this.phase6EnergyEvents = [];
+    this.phase6EnergyObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.phase6EnergyObjects = [];
+    this.phase6EnergyPaths.clear();
+    this.phase6ActivatedStages.clear();
+    this.phase6CascadeOrb = undefined;
+    this.phase6SyncTargets.forEach((target) => this.tweens.killTweensOf(target));
+    this.phase6SyncTargets = [];
+  }
+
   private playSequenceInstability(slotView: SlotView): void {
     if (this.currentSubLevel !== 4) {
       return;
@@ -2997,21 +4208,6 @@ export class CascataScene extends Phaser.Scene {
       return;
     }
 
-    if (this.currentSubLevel === 6) {
-      this.drawGoalPanel(slotView.plaque, complete ? 0xd8b4fe : 0x7dd3fc, 0x8b5cf6, complete);
-      return;
-    }
-
-    if (this.currentSubLevel === 7) {
-      this.drawGoalPanel(slotView.plaque, complete ? 0x57ffb0 : 0xff5c9a, complete ? 0x7df7ff : 0xff306f, complete);
-      return;
-    }
-
-    if (this.currentSubLevel === 8) {
-      this.drawGoalPanel(slotView.plaque, complete ? 0x7df7ff : 0xff306f, complete ? 0x57ffb0 : 0xff306f, complete);
-      return;
-    }
-
     if (this.currentSubLevel === 4) {
       this.drawGoalPanel(slotView.plaque, complete ? 0xffdf74 : 0xd2a24a, 0xffbd38, complete);
       return;
@@ -3041,6 +4237,17 @@ export class CascataScene extends Phaser.Scene {
     this.phaseBackgroundLayers = [];
     this.cascataOverlay = undefined;
     this.restoredTopics.clear();
+    this.computationalFlowPaths.clear();
+    this.computationalFlowNodes.clear();
+    this.computationalFlowObjects = [];
+    this.computationalFlowEvents = [];
+    this.activatedComputationalSystems.clear();
+    this.phase6EnergyPaths.clear();
+    this.phase6EnergyObjects = [];
+    this.phase6EnergyEvents = [];
+    this.phase6ActivatedStages.clear();
+    this.phase6CascadeOrb = undefined;
+    this.phase6SyncTargets = [];
     this.firstRestoreDecorationShown = false;
     this.slotViews.clear();
     this.slotObjects = [];
@@ -3048,17 +4255,21 @@ export class CascataScene extends Phaser.Scene {
     this.panelDynamicObjects = [];
     this.robotIntroObjects = [];
     this.activeRobotIntroId = undefined;
+    this.debugPopupObjects = [];
+    this.isDebugPopupOpen = false;
     this.moveCounterText = undefined;
     this.currentMoves = 0;
     this.maxMoves = undefined;
     this.phaseFailed = false;
     this.stabilizingMovePlayed = false;
+    this.computationalFlowStepIndex = 0;
     this.isRobotIntroActive = false;
   }
 
   private resetPhaseVisualState(): void {
     this.restoredTopics.clear();
     this.firstRestoreDecorationShown = false;
+    this.clearComputationalFlowVisuals();
 
     if (this.cascataOverlay) {
       this.tweens.killTweensOf(this.cascataOverlay);
@@ -3347,29 +4558,9 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private applyPhaseVisualTheme(): void {
-    if (this.currentSubLevel === 8) {
+    if (this.currentSubLevel >= 6) {
       this.phaseElements.forEach((element) => {
-        const output = element.image.getData("output");
-        element.image.setTint(output === "Flores" ? 0xff306f : output === "Solo" ? 0x7df7ff : 0x57ffb0);
-        element.image.setAlpha(output === "Flores" ? 0.86 : 0.94);
-      });
-      return;
-    }
-
-    if (this.currentSubLevel === 7) {
-      this.phaseElements.forEach((element) => {
-        const output = element.image.getData("output");
-        element.image.setTint(output === "Flores" ? 0xff5c9a : output === "Solo" ? 0x7df7ff : 0x57ffb0);
-        element.image.setAlpha(output === "Solo" ? 0.9 : 0.96);
-      });
-      return;
-    }
-
-    if (this.currentSubLevel === 6) {
-      this.phaseElements.forEach((element) => {
-        const output = element.image.getData("output");
-        element.image.setTint(output === "Flores" ? 0xd8b4fe : output === "Solo" ? 0x7dd3fc : 0xc4b5fd);
-        element.image.setAlpha(output === "Arvores" ? 0.92 : 1);
+        element.image.clearTint().setAlpha(1);
       });
       return;
     }
@@ -3392,10 +4583,32 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.restoredTopics.add(output);
+    this.activateComputationalFlowForOutput(output);
+    this.activateEnergySync(output);
 
-    if (!this.firstRestoreDecorationShown) {
+    if (this.currentSubLevel === 6 && output === "Flores") {
+      this.setCascataOverlayTexture(CASCATA_FASE_06_KEY);
+      this.ensurePhaseSupportImmediate({
+        id: "agua_flor",
+        textureKey: this.textures.exists(FLUXO_AGUA_SENSOR_FASE_06_KEY)
+          ? FLUXO_AGUA_SENSOR_FASE_06_KEY
+          : FLUXO_AGUA_SENSOR_FASE_04_KEY,
+        path: this.textures.exists(FLUXO_AGUA_SENSOR_FASE_06_KEY)
+          ? FLUXO_AGUA_SENSOR_FASE_06_PATH
+          : FLUXO_AGUA_SENSOR_FASE_04_PATH,
+        x: 0,
+        y: 0,
+        depth: -2
+      });
+    }
+
+    if (!this.firstRestoreDecorationShown && (this.currentSubLevel !== 6 || output === "Flores")) {
       const firstCascataTexture =
-        this.currentSubLevel === 4 && output === "Solo" ? CASCATA_FASE_04_KEY : this.getCurrentCascataTextureKey();
+        this.currentSubLevel === 6 && output === "Flores"
+          ? CASCATA_FASE_06_KEY
+          : this.currentSubLevel === 4 && output === "Solo"
+            ? CASCATA_FASE_04_KEY
+            : this.getCurrentCascataTextureKey();
       this.time.addEvent({
         delay: 400,
         callback: () => {
@@ -3405,7 +4618,7 @@ export class CascataScene extends Phaser.Scene {
       this.firstRestoreDecorationShown = true;
     }
 
-    if (output === "Solo" && this.currentSubLevel !== 2 && this.currentSubLevel !== 4) {
+    if (output === "Solo" && this.currentSubLevel !== 2 && this.currentSubLevel !== 4 && this.currentSubLevel < 6) {
       this.tweens.add({
         targets: this.fullscreenCorruptedBackground,
         alpha: 0,
@@ -3456,9 +4669,27 @@ export class CascataScene extends Phaser.Scene {
       });
     }
 
+    if (this.currentSubLevel === 6 && this.areAllCurrentMetasComplete()) {
+      this.fullscreenRestoredBackground?.setTexture(BACKGROUND_RESTORED_FASE_06_KEY);
+      this.tweens.add({
+        targets: this.fullscreenCorruptedBackground,
+        alpha: 0,
+        duration: 900,
+        ease: "Sine.Out"
+      });
+      this.tweens.add({
+        targets: this.fullscreenRestoredBackground,
+        alpha: 1,
+        duration: 900,
+        ease: "Sine.Out"
+      });
+    }
+
     this.applyPhase3RestoreAssets(output);
 
-    const deadSprites = [...this.phaseElements.values()]
+    const deadSprites = this.currentSubLevel === 6
+      ? []
+      : [...this.phaseElements.values()]
       .filter((element) => {
         if (this.currentSubLevel === 3 && (output === "Flores" || output === "Arvores")) {
           return false;
@@ -3606,6 +4837,27 @@ export class CascataScene extends Phaser.Scene {
       return [];
     }
 
+    if (this.currentSubLevel === 6) {
+      if (output === "Flores") {
+        return [
+          {
+            id: "agua_flor",
+            textureKey: this.textures.exists(FLUXO_AGUA_SENSOR_FASE_06_KEY)
+              ? FLUXO_AGUA_SENSOR_FASE_06_KEY
+              : FLUXO_AGUA_SENSOR_FASE_04_KEY,
+            path: this.textures.exists(FLUXO_AGUA_SENSOR_FASE_06_KEY)
+              ? FLUXO_AGUA_SENSOR_FASE_06_PATH
+              : FLUXO_AGUA_SENSOR_FASE_04_PATH,
+            x: 0,
+            y: 0,
+            depth: -2
+          }
+        ];
+      }
+
+      return [];
+    }
+
     if (this.currentSubLevel !== 2) {
       return RESTORE_SUPPORT_CONFIGS[output] ?? [];
     }
@@ -3737,6 +4989,7 @@ export class CascataScene extends Phaser.Scene {
     this.layoutFullscreenBackground();
     this.topHudContainer.setPosition(SIDE_PADDING, TOP_PADDING);
     this.missionPanelContainer?.setPosition(SIDE_PADDING, TOP_PADDING + 94);
+    this.updateAuxiliaryTextVisibility();
 
     this.redrawRobotPanel();
     const robotPanelWidth = this.getRobotPanelWidth();
@@ -3757,6 +5010,8 @@ export class CascataScene extends Phaser.Scene {
 
     this.layoutPhaseElements();
     this.layoutSlotZones();
+    this.layoutComputationalFlowVisuals();
+    this.layoutPhase6EnergyNetwork();
     this.redrawEcosystemHealthBar(this.getCurrentEcosystemHealth());
     this.layoutEnergyPanel();
   }
@@ -3983,15 +5238,18 @@ export class CascataScene extends Phaser.Scene {
 
   private clearDynamicLevelObjects(): void {
     this.clearRobotIntroduction();
+    this.closeDebugPopup();
     this.clearPredictionPreview();
     this.slotObjects.forEach((object) => object.destroy());
     this.slotObjects = [];
     this.slotViews.clear();
+    this.clearDraggedRobotPreview();
 
     this.panelDynamicObjects.forEach((object) => object.destroy());
     this.panelDynamicObjects = [];
     this.robotButtons.clear();
     this.moveCounterText = undefined;
+    this.clearComputationalFlowVisuals();
   }
 
   private getPendingRestoreDuration(): number {

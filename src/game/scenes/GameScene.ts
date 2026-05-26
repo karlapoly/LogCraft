@@ -121,12 +121,12 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (level.assets?.robo_adicao && !this.textures.exists(level.assets.robo_adicao)) {
-        console.log(`[GameScene] Robo adicao: ${this.resolveAssetUrl(level.assets.robo_adicao)}`);
+        console.log(`[GameScene] Robô adição: ${this.resolveAssetUrl(level.assets.robo_adicao)}`);
         this.load.image(level.assets.robo_adicao, level.assets.robo_adicao);
       }
 
       if (level.assets?.robo_divisao && !this.textures.exists(level.assets.robo_divisao)) {
-        console.log(`[GameScene] Robo divisao: ${this.resolveAssetUrl(level.assets.robo_divisao)}`);
+        console.log(`[GameScene] Robô divisão: ${this.resolveAssetUrl(level.assets.robo_divisao)}`);
         this.load.image(level.assets.robo_divisao, level.assets.robo_divisao);
       }
     }, this);
@@ -315,7 +315,7 @@ export class GameScene extends Phaser.Scene {
       .image(66, 91, GameScene.ROBOT_PANEL_KEY)
       .setDisplaySize(396, 495);
 
-    const title = this.add.text(16, -116, "Robos", {
+    const title = this.add.text(16, -116, "Robôs", {
       fontFamily: "Georgia",
       fontSize: "18px",
       color: "#fff3d4",
@@ -326,8 +326,8 @@ export class GameScene extends Phaser.Scene {
     this.panelContainer = this.add.container(0, 0, [background, title]);
     this.panelContainer.setScrollFactor(0).setDepth(10);
 
-    this.createRobotButton("adicao", 10, -46, "Adicao", this.currentLevel.assets?.robo_adicao);
-    this.createRobotButton("divisao", 72, -46, "Divisao", this.currentLevel.assets?.robo_divisao);
+    this.createRobotButton("adicao", 10, -46, "Adição", this.currentLevel.assets?.robo_adicao);
+    this.createRobotButton("divisao", 72, -46, "Divisão", this.currentLevel.assets?.robo_divisao);
     this.createResetButton(125, 102);
   }
 
@@ -418,7 +418,7 @@ export class GameScene extends Phaser.Scene {
 
       gameObject.setTint(0xffffff);
       gameObject.setScale(0.0638);
-      this.resultText?.setText("Arrastando robo. Solte sobre uma nascente.");
+      this.resultText?.setText("Arrastando robô. Solte sobre uma nascente.");
     });
 
     this.input.on(
@@ -512,7 +512,7 @@ export class GameScene extends Phaser.Scene {
         state.estadoDoBioma === EstadoDoBioma.CORROMPIDO
       ) {
         this.resetPlacedRobots();
-        this.resultText?.setText("Fase reiniciada. Arraste um robo para uma nascente.");
+        this.resultText?.setText("Fase reiniciada. Arraste um robô para uma nascente.");
         this.resultText?.setColor("#fff5cf");
       }
     });
