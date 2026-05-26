@@ -37,11 +37,7 @@ function clampMetaProgress(meta: MetaDeBioma, nextCurrent: number): number {
     return meta.goal;
   }
 
-  if (meta.initial <= meta.goal) {
-    return Math.min(numericCurrent, meta.goal);
-  }
-
-  return Math.max(numericCurrent, meta.goal);
+  return numericCurrent;
 }
 
 export const useBiomaStore = create<BiomaState>()(

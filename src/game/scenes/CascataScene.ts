@@ -102,6 +102,12 @@ type RobotButtonView = {
   homeY: number;
 };
 
+type ProgrammedSequenceStep = {
+  operation: TipoDeOperacaoDaCascata;
+  value: number;
+  label: string;
+};
+
 type CascataSubLevelConfig = {
   subtitle: string;
   background: string;
@@ -162,7 +168,7 @@ const ROBOT_PANEL_ICON_SIZE = 102;
 const ROBOT_PANEL_ICON_HOVER_SIZE = 110;
 const ROBOT_PANEL_ICON_ACTIVE_SIZE = 116;
 const MISSION_PANEL_WIDTH = 392;
-const MISSION_PANEL_HEIGHT = 186;
+const MISSION_PANEL_HEIGHT = 232;
 const MISSION_PANEL_TITLE_HEIGHT = 48;
 const ENERGY_PANEL_WIDTH = 142;
 const ENERGY_PANEL_HEIGHT = 208;
@@ -175,6 +181,7 @@ const HEALTH_RING_RADIUS = 52;
 const HEALTH_RING_THICKNESS = 14;
 const CASCATA_OVERLAY_DEPTH = -16;
 const CASCATA_FASE_04_OVERLAY_DEPTH = -16;
+const FASE_06_CRISTAL_DEPTH = 6;
 const PLAYFIELD_TOP_OFFSET = 108;
 const PLAYFIELD_SIDE_MARGIN = 32;
 const SLOT_ZONE_WIDTH = 230;
@@ -189,6 +196,8 @@ const SLOT_LABEL_OFFSET_Y = -43;
 const SLOT_VALUE_OFFSET_Y = -11;
 const SLOT_PROGRESS_OFFSET_Y = 14;
 const SLOT_METER_OFFSET_Y = 38;
+const SEQUENCE_PROGRAMMER_SLOT_SIZE = 60;
+const SEQUENCE_PROGRAMMER_SLOT_GAP = 68;
 const BACK_BUTTON_KEY = "ui-btn-back";
 const BACKGROUND_CORRUPTED_KEY = "fase-fundo-morto";
 const BACKGROUND_CORRUPTED_PATH = "assets/images/Fase01/FundoMorto.png";
@@ -202,6 +211,8 @@ const BACKGROUND_RESTORED_FASE_04_KEY = "fase-04-fundo-vivo";
 const BACKGROUND_RESTORED_FASE_04_PATH = "assets/images/Fase04/FundoFase4.png";
 const BACKGROUND_RESTORED_FASE_06_KEY = "fase-06-fundo-vivo";
 const BACKGROUND_RESTORED_FASE_06_PATH = "assets/images/Fase06/FundoFase6.png";
+const BACKGROUND_RESTORED_FASE_08_KEY = "fase-08-fundo-restaurado";
+const BACKGROUND_RESTORED_FASE_08_PATH = "assets/images/Fase08/FundoFase08.png";
 const NEXT_BUTTON_KEY = "ui-btn-next";
 const HOME_BUTTON_KEY = "ui-btn-home";
 const ROBO_ADICAO_KEY = "cascata-robo-adicao";
@@ -262,16 +273,23 @@ const FLUXO_AGUA_SENSOR_FASE_04_KEY = "fase-04-fluxo-agua-sensor";
 const FLUXO_AGUA_SENSOR_FASE_04_PATH = "assets/images/Fase04/FluxoAguaSensor.png";
 const FLUXO_AGUA_SOLO_FASE_04_KEY = "fase-04-fluxo-agua-solo";
 const FLUXO_AGUA_SOLO_FASE_04_PATH = "assets/images/Fase04/FluxoAguaSolo.png";
+const FLUXO_AGUA_SOLO_FASE_05_KEY = "fase-05-fluxo-agua-solo";
+const FLUXO_AGUA_SOLO_FASE_05_PATH = "assets/images/Fase05/FluxoAguaSolo.png";
 const FLUXO_AGUA_SENSOR_FASE_06_KEY = "fase-06-fluxo-agua-sensor";
 const FLUXO_AGUA_SENSOR_FASE_06_PATH = "assets/images/Fase06/FluxoAguaSensor.png";
+const AUDIO_MUSIC_BASE_KEY = "audio-music-ambient-base";
+const AUDIO_MUSIC_GLITCH_KEY = "audio-music-glitch";
+const AUDIO_MUSIC_TECH_KEY = "audio-music-tech";
+const AUDIO_MUSIC_ENERGY_KEY = "audio-music-energy";
+const AUDIO_MUSIC_COMPUTATION_KEY = "audio-music-computation";
+const AUDIO_MUSIC_CRYSTAL_KEY = "audio-music-crystal";
+const AUDIO_MUSIC_CORRUPTION_KEY = "audio-music-corruption";
+const AUDIO_MUSIC_FINAL_KEY = "audio-music-final";
+const AUDIO_MUSIC_RESTORED_KEY = "audio-music-restored";
 const AUDIO_CLICK_MODULE_KEY = "audio-click-module";
-const AUDIO_CLICK_MODULE_PATH = "assets/audio/click_module.wav";
 const AUDIO_SUCCESS_SYNC_KEY = "audio-success-sync";
-const AUDIO_SUCCESS_SYNC_PATH = "assets/audio/success_sync.wav";
 const AUDIO_ERROR_LIMIT_KEY = "audio-error-limit";
-const AUDIO_ERROR_LIMIT_PATH = "assets/audio/error_limit.wav";
 const AUDIO_PHASE_COMPLETE_KEY = "audio-phase-complete";
-const AUDIO_PHASE_COMPLETE_PATH = "assets/audio/phase_complete.wav";
 const AUDIO_ENERGY_CLICK_KEY = "audio-energy-click";
 const AUDIO_OVERLOAD_WARNING_KEY = "audio-overload-warning";
 const AUDIO_SEQUENCE_SUCCESS_KEY = "audio-sequence-success";
@@ -292,31 +310,61 @@ const AUDIO_AUTOMATION_EXECUTE_KEY = "audio-automation-execute";
 const AUDIO_CORRUPTION_DESTROYED_KEY = "audio-corruption-destroyed";
 const AUDIO_CASCADE_RESTORED_KEY = "audio-cascade-restored";
 const AUDIO_FINAL_VICTORY_KEY = "audio-final-victory";
-const AUDIO_PLACEHOLDER_PATHS: Record<string, string> = {
-  [AUDIO_CLICK_MODULE_KEY]: AUDIO_CLICK_MODULE_PATH,
-  [AUDIO_SUCCESS_SYNC_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_ERROR_LIMIT_KEY]: AUDIO_ERROR_LIMIT_PATH,
-  [AUDIO_PHASE_COMPLETE_KEY]: AUDIO_PHASE_COMPLETE_PATH,
-  [AUDIO_ENERGY_CLICK_KEY]: AUDIO_CLICK_MODULE_PATH,
-  [AUDIO_OVERLOAD_WARNING_KEY]: AUDIO_ERROR_LIMIT_PATH,
-  [AUDIO_SEQUENCE_SUCCESS_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_DIVISION_CLICK_KEY]: AUDIO_CLICK_MODULE_PATH,
-  [AUDIO_ENERGY_FLOW_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_OPTIMIZATION_SUCCESS_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_SEQUENCE_SELECT_KEY]: AUDIO_CLICK_MODULE_PATH,
-  [AUDIO_PREDICTION_VALID_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_PREDICTION_ERROR_KEY]: AUDIO_ERROR_LIMIT_PATH,
-  [AUDIO_CORE_RESTORE_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_CORRUPTION_WARNING_KEY]: AUDIO_ERROR_LIMIT_PATH,
-  [AUDIO_DEBUG_SUCCESS_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_FINAL_SEQUENCE_COMPLETE_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_ECOSYSTEM_RESTORED_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_FINAL_PHASE_COMPLETE_KEY]: AUDIO_PHASE_COMPLETE_PATH,
-  [AUDIO_FINAL_WARNING_KEY]: AUDIO_ERROR_LIMIT_PATH,
-  [AUDIO_AUTOMATION_EXECUTE_KEY]: AUDIO_CLICK_MODULE_PATH,
-  [AUDIO_CORRUPTION_DESTROYED_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_CASCADE_RESTORED_KEY]: AUDIO_SUCCESS_SYNC_PATH,
-  [AUDIO_FINAL_VICTORY_KEY]: AUDIO_PHASE_COMPLETE_PATH
+const AUDIO_ASSET_PATHS: Record<string, string> = {
+  [AUDIO_MUSIC_BASE_KEY]: "assets/audio/music/ambient_base.wav",
+  [AUDIO_MUSIC_GLITCH_KEY]: "assets/audio/music/corrupcao.wav",
+  [AUDIO_MUSIC_TECH_KEY]: "assets/audio/music/tecnologia.wav",
+  [AUDIO_MUSIC_ENERGY_KEY]: "assets/audio/music/energia.wav",
+  [AUDIO_MUSIC_COMPUTATION_KEY]: "assets/audio/music/fluxo_computacional.wav",
+  [AUDIO_MUSIC_CRYSTAL_KEY]: "assets/audio/music/cristal.wav",
+  [AUDIO_MUSIC_CORRUPTION_KEY]: "assets/audio/music/nucleo_buggie.wav",
+  [AUDIO_MUSIC_FINAL_KEY]: "assets/audio/music/fase_final.wav",
+  [AUDIO_MUSIC_RESTORED_KEY]: "assets/audio/music/restauracao_final.wav",
+  [AUDIO_CLICK_MODULE_KEY]: "assets/audio/sfx/click.wav",
+  [AUDIO_SUCCESS_SYNC_KEY]: "assets/audio/sfx/success.wav",
+  [AUDIO_ERROR_LIMIT_KEY]: "assets/audio/sfx/failure.wav",
+  [AUDIO_PHASE_COMPLETE_KEY]: "assets/audio/sfx/phase_complete.wav",
+  [AUDIO_ENERGY_CLICK_KEY]: "assets/audio/sfx/energy.wav",
+  [AUDIO_OVERLOAD_WARNING_KEY]: "assets/audio/sfx/failure.wav",
+  [AUDIO_SEQUENCE_SUCCESS_KEY]: "assets/audio/sfx/success.wav",
+  [AUDIO_DIVISION_CLICK_KEY]: "assets/audio/sfx/click.wav",
+  [AUDIO_ENERGY_FLOW_KEY]: "assets/audio/sfx/energy.wav",
+  [AUDIO_OPTIMIZATION_SUCCESS_KEY]: "assets/audio/sfx/restore.wav",
+  [AUDIO_SEQUENCE_SELECT_KEY]: "assets/audio/sfx/click.wav",
+  [AUDIO_PREDICTION_VALID_KEY]: "assets/audio/sfx/success.wav",
+  [AUDIO_PREDICTION_ERROR_KEY]: "assets/audio/sfx/failure.wav",
+  [AUDIO_CORE_RESTORE_KEY]: "assets/audio/sfx/crystal.wav",
+  [AUDIO_CORRUPTION_WARNING_KEY]: "assets/audio/sfx/glitch.wav",
+  [AUDIO_DEBUG_SUCCESS_KEY]: "assets/audio/sfx/restore.wav",
+  [AUDIO_FINAL_SEQUENCE_COMPLETE_KEY]: "assets/audio/sfx/sequence_execute.wav",
+  [AUDIO_ECOSYSTEM_RESTORED_KEY]: "assets/audio/sfx/restore.wav",
+  [AUDIO_FINAL_PHASE_COMPLETE_KEY]: "assets/audio/sfx/phase_complete.wav",
+  [AUDIO_FINAL_WARNING_KEY]: "assets/audio/sfx/glitch.wav",
+  [AUDIO_AUTOMATION_EXECUTE_KEY]: "assets/audio/sfx/sequence_execute.wav",
+  [AUDIO_CORRUPTION_DESTROYED_KEY]: "assets/audio/sfx/glitch.wav",
+  [AUDIO_CASCADE_RESTORED_KEY]: "assets/audio/sfx/restore.wav",
+  [AUDIO_FINAL_VICTORY_KEY]: "assets/audio/sfx/phase_complete.wav"
+};
+const CASCATA_MUSIC_KEYS = [
+  AUDIO_MUSIC_BASE_KEY,
+  AUDIO_MUSIC_GLITCH_KEY,
+  AUDIO_MUSIC_TECH_KEY,
+  AUDIO_MUSIC_ENERGY_KEY,
+  AUDIO_MUSIC_COMPUTATION_KEY,
+  AUDIO_MUSIC_CRYSTAL_KEY,
+  AUDIO_MUSIC_CORRUPTION_KEY,
+  AUDIO_MUSIC_FINAL_KEY,
+  AUDIO_MUSIC_RESTORED_KEY
+] as const;
+const CASCATA_PHASE_MIXES: Record<number, Partial<Record<string, number>>> = {
+  1: { [AUDIO_MUSIC_BASE_KEY]: 0.2 },
+  2: { [AUDIO_MUSIC_BASE_KEY]: 0.18, [AUDIO_MUSIC_GLITCH_KEY]: 0.03 },
+  3: { [AUDIO_MUSIC_BASE_KEY]: 0.17, [AUDIO_MUSIC_GLITCH_KEY]: 0.03, [AUDIO_MUSIC_TECH_KEY]: 0.08 },
+  4: { [AUDIO_MUSIC_BASE_KEY]: 0.15, [AUDIO_MUSIC_TECH_KEY]: 0.08, [AUDIO_MUSIC_ENERGY_KEY]: 0.09 },
+  5: { [AUDIO_MUSIC_BASE_KEY]: 0.14, [AUDIO_MUSIC_TECH_KEY]: 0.07, [AUDIO_MUSIC_COMPUTATION_KEY]: 0.1 },
+  6: { [AUDIO_MUSIC_BASE_KEY]: 0.14, [AUDIO_MUSIC_CRYSTAL_KEY]: 0.12, [AUDIO_MUSIC_TECH_KEY]: 0.05 },
+  7: { [AUDIO_MUSIC_BASE_KEY]: 0.1, [AUDIO_MUSIC_CORRUPTION_KEY]: 0.12, [AUDIO_MUSIC_GLITCH_KEY]: 0.06 },
+  8: { [AUDIO_MUSIC_BASE_KEY]: 0.08, [AUDIO_MUSIC_FINAL_KEY]: 0.14, [AUDIO_MUSIC_CORRUPTION_KEY]: 0.06, [AUDIO_MUSIC_CRYSTAL_KEY]: 0.06 }
 };
 
 const PHASE_ELEMENT_CONFIGS: PhaseElementConfig[] = [
@@ -670,6 +718,11 @@ export class CascataScene extends Phaser.Scene {
   private phase6ActivatedStages = new Set<string>();
   private phase6CascadeOrb?: Phaser.GameObjects.Container;
   private phase6SyncTargets: Phaser.GameObjects.GameObject[] = [];
+  private phase7VisualObjects: Phaser.GameObjects.GameObject[] = [];
+  private phase7VisualEvents: Phaser.Time.TimerEvent[] = [];
+  private phase8VisualObjects: Phaser.GameObjects.GameObject[] = [];
+  private phase8VisualEvents: Phaser.Time.TimerEvent[] = [];
+  private phase8FinalStable = false;
   private firstRestoreDecorationShown = false;
   private slotViews = new Map<string, SlotView>();
   private slotObjects: Phaser.GameObjects.GameObject[] = [];
@@ -697,6 +750,20 @@ export class CascataScene extends Phaser.Scene {
   private debugPopupObjects: Phaser.GameObjects.GameObject[] = [];
   private lastDebugMessage?: string;
   private isDebugPopupOpen = false;
+  private phase6To7NarrativeObjects: Phaser.GameObjects.GameObject[] = [];
+  private phase6To7NarrativeEvents: Phaser.Time.TimerEvent[] = [];
+  private isPhase6To7NarrativeOpen = false;
+  private sequenceProgrammerObjects: Phaser.GameObjects.GameObject[] = [];
+  private sequenceProgrammerDynamicObjects: Phaser.GameObjects.GameObject[] = [];
+  private sequenceProgrammerEvents: Phaser.Time.TimerEvent[] = [];
+  private isSequenceProgrammerOpen = false;
+  private programmedSequence: Array<ProgrammedSequenceStep | undefined> = Array(5).fill(undefined);
+  private programmedSequenceTargetOutput = "Solo";
+  private sequenceProgrammerSlotCenters: Array<{ x: number; y: number; width: number; height: number }> = [];
+  private sequenceProgrammerResultText?: Phaser.GameObjects.Text;
+  private cascadeMusicLayers = new Map<string, Phaser.Sound.BaseSound>();
+  private cascadeAudioStarted = false;
+  private lastSfxPlayedAt = new Map<string, number>();
 
   public constructor() {
     super("CascataScene");
@@ -717,6 +784,7 @@ export class CascataScene extends Phaser.Scene {
       [BACKGROUND_CORRUPTED_FASE_04_KEY, BACKGROUND_CORRUPTED_FASE_04_PATH],
       [BACKGROUND_RESTORED_FASE_04_KEY, BACKGROUND_RESTORED_FASE_04_PATH],
       [BACKGROUND_RESTORED_FASE_06_KEY, BACKGROUND_RESTORED_FASE_06_PATH],
+      [BACKGROUND_RESTORED_FASE_08_KEY, BACKGROUND_RESTORED_FASE_08_PATH],
       [CASCATA_KEY, CASCATA_PATH],
       [CASCATA_FASE_02_KEY, CASCATA_FASE_02_PATH],
       [CASCATA_FASE_04_KEY, CASCATA_FASE_04_PATH],
@@ -746,6 +814,7 @@ export class CascataScene extends Phaser.Scene {
       [SOLO_BOMBA_FASE_04_KEY, SOLO_BOMBA_FASE_04_PATH],
       [FLUXO_AGUA_SENSOR_FASE_04_KEY, FLUXO_AGUA_SENSOR_FASE_04_PATH],
       [FLUXO_AGUA_SOLO_FASE_04_KEY, FLUXO_AGUA_SOLO_FASE_04_PATH],
+      [FLUXO_AGUA_SOLO_FASE_05_KEY, FLUXO_AGUA_SOLO_FASE_05_PATH],
       [FLUXO_AGUA_SENSOR_FASE_06_KEY, FLUXO_AGUA_SENSOR_FASE_06_PATH]
     ] as [string, string][]).forEach(([textureKey, path]) => {
       if (!this.textures.exists(textureKey)) {
@@ -759,7 +828,7 @@ export class CascataScene extends Phaser.Scene {
       }
     });
 
-    Object.entries(AUDIO_PLACEHOLDER_PATHS).forEach(([audioKey, path]) => {
+    Object.entries(AUDIO_ASSET_PATHS).forEach(([audioKey, path]) => {
       if (!this.cache.audio.exists(audioKey)) {
         this.load.audio(audioKey, path);
       }
@@ -780,6 +849,7 @@ export class CascataScene extends Phaser.Scene {
     this.createHomeButton();
     this.installInputEvents();
     this.installStoreSync();
+    this.startCascadeAudioSystem();
     this.setupLevel(this.currentSubLevel);
     this.layoutScene(this.scale.width, this.scale.height);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
@@ -790,12 +860,15 @@ export class CascataScene extends Phaser.Scene {
         this.autoReturnTimeoutId = undefined;
       }
       this.clearRobotIntroduction();
+      this.closePhase6To7NarrativePopup();
+      this.closeSequenceProgrammerPopup();
       if (this.predictionPreviewText) {
         this.predictionPreviewText.destroy();
         this.predictionPreviewText = undefined;
       }
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
       this.unsubscribeStore?.();
+      this.stopCascadeAudioSystem();
     });
   }
 
@@ -806,6 +879,7 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.currentSubLevel = levelNumber;
+    this.transitionCascadeMusic(levelNumber);
     this.currentMoves = 0;
     this.maxMoves = config.maxMoves;
     this.phaseFailed = false;
@@ -848,6 +922,7 @@ export class CascataScene extends Phaser.Scene {
     config.robotButtons.forEach((button) => {
       this.createRobotButton(button.operation, button.x, button.y, button.texture, button.value);
     });
+    this.createProgrammedSequenceModule();
     this.createMoveCounter();
     this.updateSequenceLocks();
 
@@ -966,20 +1041,20 @@ export class CascataScene extends Phaser.Scene {
     };
 
     const bodyX = 88;
-    const bodyY = 82;
+    const bodyY = 80;
     const bodyMaxWidth = MISSION_PANEL_WIDTH - bodyX - 24;
     this.missionPanelLine1 = this.add.text(bodyX, bodyY, "", {
       ...bodyStyle,
       wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true }
     });
-    this.missionPanelLine1.setFixedSize(bodyMaxWidth, 34);
+    this.missionPanelLine1.setFixedSize(bodyMaxWidth, 50);
 
-    this.missionPanelLine2 = this.add.text(bodyX, bodyY + 39, "", {
+    this.missionPanelLine2 = this.add.text(bodyX, bodyY + 56, "", {
       ...bodyStyle,
       color: "#4dff8c",
       wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true }
     });
-    this.missionPanelLine2.setFixedSize(bodyMaxWidth, 56);
+    this.missionPanelLine2.setFixedSize(bodyMaxWidth, 86);
 
     this.missionPanelContainer = this.add.container(0, 0, [
       frame,
@@ -1037,9 +1112,12 @@ export class CascataScene extends Phaser.Scene {
     config: PhaseElementConfig,
     initialAlpha = 1
   ): Phaser.GameObjects.Image {
+    const depth = config.textureKey === FLUXO_AGUA_SENSOR_FASE_06_KEY
+      ? FASE_06_CRISTAL_DEPTH
+      : config.depth ?? -5;
     const image = this.add
       .image(config.x, config.y, config.textureKey)
-      .setDepth(config.depth ?? -5)
+      .setDepth(depth)
       .setOrigin(0, 0)
       .setAlpha(initialAlpha);
     image.setAngle(config.angle ?? 0);
@@ -1807,7 +1885,8 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private getRobotPanelWidth(): number {
-    const robotCount = Math.max(2, SUB_LEVELS[this.currentSubLevel]?.robotButtons.length ?? 1);
+    const specialModuleCount = this.currentSubLevel === 8 ? 1 : 0;
+    const robotCount = Math.max(2, (SUB_LEVELS[this.currentSubLevel]?.robotButtons.length ?? 1) + specialModuleCount);
     const slotsWidth = robotCount * ROBOT_PANEL_SLOT_WIDTH + Math.max(0, robotCount - 1) * ROBOT_PANEL_SLOT_GAP;
     return ROBOT_PANEL_PADDING_X * 2 + slotsWidth + 44;
   }
@@ -1904,7 +1983,7 @@ export class CascataScene extends Phaser.Scene {
       }
 
       if (this.currentSubLevel === 6) {
-        this.setupLevel(7, { preservePhaseVisuals: true });
+        this.showPhase6To7NarrativePopup();
         return;
       }
 
@@ -2128,6 +2207,84 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.redrawRobotPanel();
+  }
+
+  private createProgrammedSequenceModule(): void {
+    if (this.currentSubLevel !== 8) {
+      return;
+    }
+
+    const buttonIndex = this.robotButtons.size;
+    const homePosition = this.getRobotButtonHomePosition(buttonIndex);
+    const frame = this.createRobotSlot(buttonIndex);
+    frame.setData("programmedSequenceModule", true);
+    this.drawProgrammedSequenceModuleFrame(frame);
+
+    const x = homePosition.x;
+    const y = homePosition.y - 4;
+    const core = this.add.circle(x, y - 6, 30, 0x0a2535, 0.92);
+    core.setStrokeStyle(3, 0x7df7ff, 0.95);
+    const glyph = this.add.text(x, y - 8, "</>", {
+      fontFamily: "Consolas",
+      fontSize: "22px",
+      fontStyle: "bold",
+      color: "#b8fbff"
+    }).setOrigin(0.5);
+    glyph.setShadow(0, 0, "#62e8ff", 12, true, true);
+    const label = this.add.text(x, y + 43, "Sequência\nProgramada", {
+      fontFamily: "Georgia",
+      fontSize: "17px",
+      fontStyle: "bold",
+      color: "#b8fbff",
+      stroke: "#07111d",
+      strokeThickness: 3,
+      align: "center"
+    }).setOrigin(0.5);
+    const zone = this.add.zone(x, y + 7, ROBOT_PANEL_SLOT_WIDTH + 22, ROBOT_PANEL_SLOT_HEIGHT + 22)
+      .setInteractive({ useHandCursor: true });
+
+    zone.on("pointerdown", () => {
+      if (this.isRobotIntroActive || this.phaseFailed) {
+        return;
+      }
+      this.showSequenceProgrammerPopup();
+    });
+    zone.on("pointerover", () => this.drawProgrammedSequenceModuleFrame(frame, true));
+    zone.on("pointerout", () => this.drawProgrammedSequenceModuleFrame(frame, false));
+
+    this.panelContainer.add([core, glyph, label, zone]);
+    this.panelDynamicObjects.push(core, glyph, label, zone);
+    this.tweens.add({
+      targets: [core, glyph],
+      scaleX: 1.08,
+      scaleY: 1.08,
+      duration: 980,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+
+    this.redrawRobotPanel();
+  }
+
+  private drawProgrammedSequenceModuleFrame(frame: Phaser.GameObjects.Graphics, active = false): void {
+    const width = ROBOT_PANEL_SLOT_WIDTH + 18;
+    const height = ROBOT_PANEL_SLOT_HEIGHT + 18;
+    const left = -width / 2;
+    const top = -height / 2;
+    frame.clear();
+    frame.fillStyle(0x7df7ff, active ? 0.26 : 0.16);
+    frame.fillRoundedRect(left - 6, top - 6, width + 12, height + 12, 10);
+    frame.fillStyle(0x06111d, 0.9);
+    frame.fillRoundedRect(left, top, width, height, 8);
+    frame.lineStyle(3, active ? 0xffffff : 0x7df7ff, active ? 0.92 : 0.76);
+    frame.strokeRoundedRect(left + 3, top + 3, width - 6, height - 6, 7);
+    frame.lineStyle(1, 0xff4bd8, active ? 0.72 : 0.42);
+    frame.strokeRoundedRect(left + 10, top + 10, width - 20, height - 20, 5);
+    frame.fillStyle(0x7df7ff, active ? 0.22 : 0.12);
+    for (let lineY = top + 18; lineY < top + height - 12; lineY += 13) {
+      frame.fillRect(left + 14, lineY, width - 28, 1);
+    }
   }
 
   private setRobotButtonVisualSize(sprite: Phaser.GameObjects.Image, size: number): void {
@@ -2368,12 +2525,6 @@ export class CascataScene extends Phaser.Scene {
     const operation = gameObject.getData("operation") as TipoDeOperacaoDaCascata;
     const operationValue = gameObject.getData("operationValue") as number | undefined;
     const numericValue = operationValue ?? this.getDefaultOperationValue(operation);
-    const automationPreview = this.getAutomationPreviewValue(slotView.output, operation, targetMeta.current);
-    if (automationPreview !== undefined) {
-      this.showPredictionPreview(slotView, automationPreview, true);
-      return;
-    }
-
     if (config.automationMode) {
       this.showPredictionPreview(slotView, undefined, false);
       return;
@@ -2433,110 +2584,6 @@ export class CascataScene extends Phaser.Scene {
     }
   }
 
-  private getAutomationPreviewValue(
-    output: string,
-    operation: TipoDeOperacaoDaCascata,
-    currentValue: number
-  ): number | undefined {
-    if (!SUB_LEVELS[this.currentSubLevel]?.automationMode) {
-      return undefined;
-    }
-
-    const sequence = this.getAutomationSequence(output, operation);
-    if (!sequence) {
-      return undefined;
-    }
-
-    return sequence.reduce((value, step) => this.applyOperation(value, step.operation, step.value), currentValue);
-  }
-
-  private getAutomationSequence(
-    output: string,
-    operation: TipoDeOperacaoDaCascata
-  ): Array<{ operation: TipoDeOperacaoDaCascata; value: number }> | undefined {
-    if (this.currentSubLevel !== 8) {
-      return undefined;
-    }
-
-    const isDivision = isCascataDivisionOperation(operation);
-    const isMultiply = isCascataMultiplicationOperation(operation);
-
-    if (output === "Flores" && isDivision) {
-      return [
-        { operation: "division", value: 2 },
-        { operation: "division", value: 2 }
-      ];
-    }
-
-    if (output === "Solo" && isDivision) {
-      return [
-        { operation: "division", value: 2 },
-        { operation: "division", value: 2 },
-        { operation: "addition", value: 10 },
-        { operation: "addition", value: 10 },
-        { operation: "addition", value: 5 }
-      ];
-    }
-
-    if (output === "Arvores" && isMultiply) {
-      return [
-        { operation: "multiply", value: 2 },
-        { operation: "multiply", value: 2 },
-        { operation: "addition", value: 10 },
-        { operation: "addition", value: 10 },
-        { operation: "addition", value: 5 }
-      ];
-    }
-
-    return undefined;
-  }
-
-  private handleAutomationDrop(
-    operation: TipoDeOperacaoDaCascata,
-    slotView: SlotView,
-    targetMeta: MetaDeBioma
-  ): void {
-    const sequence = this.getAutomationSequence(slotView.output, operation);
-    if (!sequence) {
-      this.failCurrentPhase("Sequência inválida: este módulo não otimiza esse sistema.", true);
-      this.flashSlot(slotView, 0xff306f);
-      this.playAudioPlaceholder(AUDIO_FINAL_WARNING_KEY);
-      this.playDebugCoreFeedback(slotView, false);
-      return;
-    }
-
-    const levelConfig = SUB_LEVELS[this.currentSubLevel];
-    const nextValue = sequence.reduce((value, step) => this.applyOperation(value, step.operation, step.value), targetMeta.current);
-    const criticalMin = levelConfig?.operationRules?.criticalMin ?? Number.NEGATIVE_INFINITY;
-    const criticalMax = levelConfig?.operationRules?.criticalMax ?? Number.POSITIVE_INFINITY;
-    if (nextValue < criticalMin || nextValue > criticalMax) {
-      this.failCurrentPhase("Automação inválida: a sequência excedeu os limites seguros.", true);
-      this.flashSlot(slotView, 0xff306f);
-      this.playAudioPlaceholder(AUDIO_FINAL_WARNING_KEY);
-      this.playDebugCoreFeedback(slotView, false);
-      return;
-    }
-
-    const currentMetas = biomaStoreApi.getState().metas;
-    const updatedOutputs: Record<string, number> = {};
-    currentMetas.forEach((meta) => {
-      updatedOutputs[meta.output] = meta.output === slotView.output ? nextValue : meta.current;
-    });
-
-    this.currentMoves += 1;
-    this.updateMoveCounter();
-    this.playAudioPlaceholder(AUDIO_AUTOMATION_EXECUTE_KEY);
-    this.playAutomationSequenceFeedback(slotView, sequence.length);
-    biomaStoreApi.getState().atualizarProgresso(updatedOutputs);
-
-    const updatedMetas = biomaStoreApi.getState().metas;
-    const venceu = updatedMetas.length > 0 && updatedMetas.every((meta: MetaDeBioma) => meta.current === meta.goal);
-    if (this.maxMoves && this.currentMoves >= this.maxMoves && !venceu) {
-      this.failCurrentPhase("Energia encerrada. Hora de revisar a estratégia.", true);
-      this.playAudioPlaceholder(AUDIO_FINAL_WARNING_KEY);
-    }
-  }
-
   private handleRobotDrop(operation: TipoDeOperacaoDaCascata, slotId: string, operationValue?: number): void {
     if (this.phaseFailed || this.isRobotIntroActive) {
       return;
@@ -2554,7 +2601,9 @@ export class CascataScene extends Phaser.Scene {
     }
 
     if (SUB_LEVELS[this.currentSubLevel]?.automationMode) {
-      this.handleAutomationDrop(operation, slotView, targetMeta);
+      this.resultText?.setColor("#b8fbff");
+      this.resultText?.setText("Use o módulo Sequência Programada para automatizar esta fase.");
+      this.flashSlot(slotView, 0x7df7ff);
       return;
     }
 
@@ -2833,6 +2882,8 @@ export class CascataScene extends Phaser.Scene {
           ? "Sequência otimizada. Cascata totalmente restaurada."
           : "Cascata restaurada. Sistema estabilizado."
       );
+      this.stabilizePhase8FinalVisuals();
+      this.resolveCascadeAudioFinale();
       this.playFinalRestorationFeedback();
       this.playUltimateRestorationFeedback();
       this.playAudioPlaceholder(AUDIO_CORRUPTION_DESTROYED_KEY);
@@ -2968,7 +3019,7 @@ export class CascataScene extends Phaser.Scene {
 
     this.isDebugPopupOpen = true;
     const overlay = this.add
-      .rectangle(0, 0, this.scale.width, this.scale.height, 0x02070b, 0.46)
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x06111a, 0.26)
       .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(90);
@@ -2978,39 +3029,32 @@ export class CascataScene extends Phaser.Scene {
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
     const frame = this.add.graphics();
-    drawFantasyPanelFrame(frame, {
-      width: panelWidth,
-      height: panelHeight,
-      glowColor: 0xff4f4f,
-      glowAlpha: 0.2,
-      accentBorderColor: 0xff4f4f
-    });
-    frame.fillStyle(FANTASY_PANEL_COLORS.titleSurface, 0.94);
+    frame.fillStyle(0xf7fbff, 0.9);
+    frame.fillRoundedRect(0, 0, panelWidth, panelHeight, 10);
+    frame.fillStyle(0xfff3df, 0.92);
+    frame.fillRoundedRect(12, 12, panelWidth - 24, panelHeight - 24, 8);
+    frame.lineStyle(2, 0xff7b7b, 0.46);
+    frame.strokeRoundedRect(10, 10, panelWidth - 20, panelHeight - 20, 8);
+    frame.fillStyle(0xffe1cc, 0.72);
     frame.fillRoundedRect(18, 16, panelWidth - 36, 50, 5);
-    frame.lineStyle(2, 0xff6b6b, 0.82);
-    frame.strokeRoundedRect(19, 17, panelWidth - 38, 48, 4);
 
-    const robotColumnCenterX = 124;
-    const textColumnLeft = 222;
+    const robotColumnCenterX = 142;
+    const textColumnLeft = 286;
     const textColumnWidth = panelWidth - textColumnLeft - 42;
     const textColumnCenterX = textColumnLeft + textColumnWidth / 2;
     const messageFrame = this.add.graphics();
-    messageFrame.fillStyle(0x160909, 0.18);
-    messageFrame.fillRoundedRect(textColumnLeft, 92, textColumnWidth, 168, 7);
-    messageFrame.lineStyle(2, 0xff4f4f, 0.72);
-    messageFrame.strokeRoundedRect(textColumnLeft + 1, 93, textColumnWidth - 2, 166, 6);
+    messageFrame.fillStyle(0xffffff, 0.2);
+    messageFrame.fillRoundedRect(textColumnLeft, 94, textColumnWidth, 164, 7);
 
-    const robot = this.add.image(robotColumnCenterX, 188, this.getDominantDebugRobotTextureKey());
-    this.setRobotButtonVisualSize(robot, 118);
-    robot.setTint(0xf3fbff).setAlpha(0.58);
+    const robot = this.add.image(robotColumnCenterX, 198, this.getDominantDebugRobotTextureKey());
+    this.setRobotButtonVisualSize(robot, 215);
+    robot.setTint(0xffffff).setAlpha(0.96);
 
     const title = this.add.text(panelWidth / 2, 41, "Debugging de Energia", {
       fontFamily: "Georgia",
       fontSize: "25px",
       fontStyle: "bold",
-      color: "#f2c45d",
-      stroke: "#24170a",
-      strokeThickness: 4,
+      color: "#8d2636",
       align: "center"
     });
     title.setOrigin(0.5);
@@ -3018,9 +3062,7 @@ export class CascataScene extends Phaser.Scene {
     const message = this.add.text(textColumnCenterX, 176, this.selectDebugMessage(), {
       fontFamily: "Georgia",
       fontSize: "29px",
-      color: "#f5f0df",
-      stroke: "#3d0808",
-      strokeThickness: 4,
+      color: "#3d2530",
       align: "center",
       lineSpacing: 16,
       wordWrap: { width: textColumnWidth - 44, useAdvancedWrap: true }
@@ -3158,6 +3200,706 @@ export class CascataScene extends Phaser.Scene {
     });
     this.debugPopupObjects = [];
     this.isDebugPopupOpen = false;
+  }
+
+  private showPhase6To7NarrativePopup(): void {
+    if (this.isPhase6To7NarrativeOpen) {
+      return;
+    }
+
+    this.isPhase6To7NarrativeOpen = true;
+    this.nextButton?.setVisible(false).disableInteractive();
+    this.homeButton?.disableInteractive();
+    this.playAudioPlaceholder(AUDIO_CORRUPTION_WARNING_KEY);
+
+    const overlay = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x02040a, 0.52)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(94);
+
+    const crystalPoint = this.getPhase6EnergyNodePosition("orb");
+    const crystalGlow = this.add.circle(crystalPoint.x, crystalPoint.y, 44, 0xff245e, 0.26).setDepth(95);
+    crystalGlow.setBlendMode(Phaser.BlendModes.ADD);
+    const crystalPulse = this.add.circle(crystalPoint.x, crystalPoint.y, 28, 0x7df7ff, 0.2).setDepth(95);
+    crystalPulse.setStrokeStyle(3, 0xff326b, 0.74);
+    crystalPulse.setBlendMode(Phaser.BlendModes.ADD);
+
+    const panelWidth = Math.min(720, this.scale.width - 54);
+    const panelHeight = 330;
+    const panelX = this.scale.width / 2 - panelWidth / 2;
+    const panelY = this.scale.height / 2 - panelHeight / 2;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x07101a, 0.72);
+    panel.fillRoundedRect(0, 0, panelWidth, panelHeight, 8);
+    panel.lineStyle(5, 0xff245e, 0.16);
+    panel.strokeRoundedRect(-4, -4, panelWidth + 8, panelHeight + 8, 10);
+    panel.lineStyle(2, 0xff326b, 0.86);
+    panel.strokeRoundedRect(8, 8, panelWidth - 16, panelHeight - 16, 7);
+    panel.lineStyle(1, 0x7df7ff, 0.34);
+    panel.strokeRoundedRect(18, 18, panelWidth - 36, panelHeight - 36, 5);
+    panel.fillStyle(0x7df7ff, 0.08);
+    for (let y = 34; y < panelHeight - 32; y += 22) {
+      panel.fillRect(30, y, panelWidth - 60, 1);
+    }
+
+    const title = this.add.text(panelWidth / 2, 64, "ALERTA DO SISTEMA", {
+      fontFamily: "Consolas",
+      fontSize: "31px",
+      fontStyle: "bold",
+      color: "#ff5c8a",
+      align: "center"
+    }).setOrigin(0.5);
+    title.setShadow(0, 0, "#ff174f", 12, true, true);
+
+    const body = this.add.text(
+      panelWidth / 2,
+      145,
+      "O Cristal Central foi detectado.\n\nO Buggie reagiu à restauração da Cascata e iniciou um contra-ataque.",
+      {
+        fontFamily: "Georgia",
+        fontSize: "23px",
+        color: "#e9fbff",
+        align: "center",
+        lineSpacing: 8,
+        wordWrap: { width: panelWidth - 110, useAdvancedWrap: true }
+      }
+    ).setOrigin(0.5);
+
+    const warning = this.add.text(
+      panelWidth / 2,
+      244,
+      "Não deixe a corrupção do Buggie evoluir novamente.",
+      {
+        fontFamily: "Georgia",
+        fontSize: "24px",
+        fontStyle: "bold",
+        color: "#ff8aaa",
+        align: "center",
+        wordWrap: { width: panelWidth - 92, useAdvancedWrap: true }
+      }
+    ).setOrigin(0.5);
+    warning.setShadow(0, 0, "#ff174f", 16, true, true);
+
+    const continueButton = this.createNarrativeContinueButton(panelWidth / 2, panelHeight - 42, () => {
+      this.closePhase6To7NarrativePopup();
+      this.setupLevel(7, { preservePhaseVisuals: true });
+    });
+
+    const popup = this.add.container(panelX, panelY + 18, [panel, title, body, warning, continueButton])
+      .setDepth(96)
+      .setAlpha(0)
+      .setScale(0.96)
+      .setScrollFactor(0);
+
+    this.phase6To7NarrativeObjects.push(overlay, crystalGlow, crystalPulse, popup);
+    this.createPhase6To7NarrativeGlitches();
+
+    this.tweens.add({
+      targets: popup,
+      alpha: 1,
+      y: panelY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 420,
+      ease: "Back.Out"
+    });
+    this.tweens.add({
+      targets: [crystalGlow, crystalPulse],
+      scaleX: 1.24,
+      scaleY: 1.24,
+      alpha: 0.86,
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+    this.tweens.add({
+      targets: warning,
+      alpha: 0.56,
+      x: warning.x + 2,
+      duration: 120,
+      yoyo: true,
+      repeat: -1,
+      repeatDelay: 760,
+      ease: "Stepped"
+    });
+    this.tweens.add({
+      targets: popup,
+      x: panelX + 2,
+      duration: 80,
+      yoyo: true,
+      repeat: 3,
+      ease: "Stepped"
+    });
+
+  }
+
+  private createNarrativeContinueButton(
+    x: number,
+    y: number,
+    onClick: () => void
+  ): Phaser.GameObjects.Container {
+    const background = this.add.graphics();
+    background.fillStyle(0x120915, 0.86);
+    background.fillRoundedRect(-92, -18, 184, 36, 5);
+    background.lineStyle(2, 0xff326b, 0.86);
+    background.strokeRoundedRect(-90, -16, 180, 32, 5);
+    const label = this.add.text(0, 0, "Continuar", {
+      fontFamily: "Consolas",
+      fontSize: "18px",
+      fontStyle: "bold",
+      color: "#e9fbff"
+    }).setOrigin(0.5);
+    const zone = this.add.zone(0, 0, 184, 42).setInteractive({ useHandCursor: true });
+    zone.on("pointerdown", onClick);
+    zone.on("pointerover", () => {
+      background.clear();
+      background.fillStyle(0x2a0b1a, 0.92);
+      background.fillRoundedRect(-92, -18, 184, 36, 5);
+      background.lineStyle(2, 0x7df7ff, 0.9);
+      background.strokeRoundedRect(-90, -16, 180, 32, 5);
+    });
+    zone.on("pointerout", () => {
+      background.clear();
+      background.fillStyle(0x120915, 0.86);
+      background.fillRoundedRect(-92, -18, 184, 36, 5);
+      background.lineStyle(2, 0xff326b, 0.86);
+      background.strokeRoundedRect(-90, -16, 180, 32, 5);
+    });
+    return this.add.container(x, y, [background, label, zone]);
+  }
+
+  private createPhase6To7NarrativeGlitches(): void {
+    const spawnGlitch = () => {
+      if (!this.isPhase6To7NarrativeOpen) {
+        return;
+      }
+
+      const color = Phaser.Math.Between(0, 1) === 0 ? 0xff326b : 0x7df7ff;
+      const line = this.add.rectangle(
+        this.scale.width * Phaser.Math.FloatBetween(0.28, 0.72),
+        this.scale.height * Phaser.Math.FloatBetween(0.22, 0.76),
+        this.scale.width * Phaser.Math.FloatBetween(0.08, 0.24),
+        3,
+        color,
+        0.52
+      ).setDepth(97).setScrollFactor(0);
+      line.setBlendMode(Phaser.BlendModes.ADD);
+      this.phase6To7NarrativeObjects.push(line);
+      this.tweens.add({
+        targets: line,
+        x: line.x + Phaser.Math.Between(-22, 22),
+        alpha: 0,
+        duration: 160,
+        ease: "Stepped",
+        onComplete: () => {
+          this.phase6To7NarrativeObjects = this.phase6To7NarrativeObjects.filter((object) => object !== line);
+          line.destroy();
+        }
+      });
+
+      const cascade = this.getPhase6EnergyNodePosition("cascade");
+      const binary = this.add.text(
+        cascade.x + Phaser.Math.Between(-110, 120),
+        cascade.y + Phaser.Math.Between(55, 130),
+        Phaser.Math.Between(0, 1) === 0 ? "101" : "010",
+        {
+          fontFamily: "Consolas",
+          fontSize: "14px",
+          color: "#ff4f7d"
+        }
+      ).setDepth(97).setAlpha(0.66).setScrollFactor(0);
+      binary.setBlendMode(Phaser.BlendModes.ADD);
+      this.phase6To7NarrativeObjects.push(binary);
+      this.tweens.add({
+        targets: binary,
+        y: binary.y - 70,
+        alpha: 0,
+        duration: 980,
+        ease: "Sine.Out",
+        onComplete: () => {
+          this.phase6To7NarrativeObjects = this.phase6To7NarrativeObjects.filter((object) => object !== binary);
+          binary.destroy();
+        }
+      });
+    };
+
+    spawnGlitch();
+    const event = this.time.addEvent({
+      delay: 380,
+      loop: true,
+      callback: spawnGlitch
+    });
+    this.phase6To7NarrativeEvents.push(event);
+  }
+
+  private closePhase6To7NarrativePopup(): void {
+    this.phase6To7NarrativeEvents.forEach((event) => event.remove(false));
+    this.phase6To7NarrativeEvents = [];
+    this.phase6To7NarrativeObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.phase6To7NarrativeObjects = [];
+    this.isPhase6To7NarrativeOpen = false;
+    this.homeButton?.setInteractive({ useHandCursor: true });
+  }
+
+  private showSequenceProgrammerPopup(): void {
+    if (this.currentSubLevel !== 8 || this.isSequenceProgrammerOpen) {
+      return;
+    }
+
+    this.isSequenceProgrammerOpen = true;
+    this.programmedSequence = Array(5).fill(undefined);
+    this.programmedSequenceTargetOutput = "Solo";
+    this.sequenceProgrammerSlotCenters = [];
+    this.homeButton?.disableInteractive();
+    this.playAudioPlaceholder(AUDIO_AUTOMATION_EXECUTE_KEY);
+
+    const panelWidth = Math.min(860, this.scale.width - 70);
+    const panelHeight = Math.min(560, this.scale.height - 86);
+    const panelX = this.scale.width / 2 - panelWidth / 2;
+    const panelY = this.scale.height / 2 - panelHeight / 2;
+
+    const backdrop = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x010812, 0.28)
+      .setOrigin(0, 0)
+      .setDepth(88)
+      .setScrollFactor(0);
+
+    const panel = this.add.graphics().setDepth(89).setScrollFactor(0);
+    panel.fillStyle(0x06131f, 0.78);
+    panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+    panel.lineStyle(5, 0x7df7ff, 0.13);
+    panel.strokeRoundedRect(panelX - 4, panelY - 4, panelWidth + 8, panelHeight + 8, 10);
+    panel.lineStyle(2, 0x7df7ff, 0.86);
+    panel.strokeRoundedRect(panelX + 8, panelY + 8, panelWidth - 16, panelHeight - 16, 7);
+    panel.lineStyle(1, 0xff4bd8, 0.34);
+    panel.strokeRoundedRect(panelX + 18, panelY + 18, panelWidth - 36, panelHeight - 36, 5);
+    panel.fillStyle(0x7df7ff, 0.07);
+    for (let y = panelY + 72; y < panelY + panelHeight - 30; y += 20) {
+      panel.fillRect(panelX + 30, y, panelWidth - 60, 1);
+    }
+
+    const title = this.add.text(panelX + panelWidth / 2, panelY + 42, "PROGRAMADOR DE SEQUÊNCIA", {
+      fontFamily: "Consolas",
+      fontSize: "29px",
+      fontStyle: "bold",
+      color: "#b8fbff",
+      align: "center"
+    }).setOrigin(0.5).setDepth(90).setScrollFactor(0);
+    title.setShadow(0, 0, "#62e8ff", 14, true, true);
+
+    const subtitle = this.add.text(panelX + panelWidth / 2, panelY + 76, "Monte uma sequência lógica para estabilizar o sistema.", {
+      fontFamily: "Georgia",
+      fontSize: "18px",
+      color: "#e9fbff",
+      align: "center"
+    }).setOrigin(0.5).setDepth(90).setScrollFactor(0);
+
+    this.sequenceProgrammerObjects.push(backdrop, panel, title, subtitle);
+    this.createSequenceTargetSelectors(panelX, panelY, panelWidth);
+    this.createSequenceOperationPalette(panelX, panelY);
+    this.createSequenceSlots(panelX, panelY, panelWidth);
+    this.createSequenceExecuteButton(panelX + panelWidth / 2, panelY + panelHeight - 52);
+    this.createSequenceCloseButton(panelX + panelWidth - 40, panelY + 38);
+    this.renderProgrammedSequenceSlots();
+    this.createSequenceProgrammerParticles(panelX, panelY, panelWidth, panelHeight);
+
+    this.sequenceProgrammerObjects.forEach((object) => {
+      (object as Phaser.GameObjects.GameObject & { setAlpha: (value: number) => Phaser.GameObjects.GameObject }).setAlpha(0);
+    });
+    this.tweens.add({
+      targets: this.sequenceProgrammerObjects,
+      alpha: 1,
+      duration: 300,
+      ease: "Sine.Out"
+    });
+  }
+
+  private createSequenceTargetSelectors(panelX: number, panelY: number, panelWidth: number): void {
+    const metas = biomaStoreApi.getState().metas;
+    const startX = panelX + panelWidth / 2 - 240;
+    metas.forEach((meta, index) => {
+      const x = startX + index * 240;
+      const y = panelY + 122;
+      const container = this.add.container(x, y).setDepth(90).setScrollFactor(0);
+      const background = this.add.graphics();
+      const label = this.add.text(0, 0, `${this.getOutputLabel(meta.output)}\n${meta.current}/${meta.goal}`, {
+        fontFamily: "Georgia",
+        fontSize: "16px",
+        fontStyle: "bold",
+        color: "#e9fbff",
+        align: "center"
+      }).setOrigin(0.5);
+      const zone = this.add.zone(0, 0, 205, 54).setInteractive({ useHandCursor: true });
+      container.add([background, label, zone]);
+      container.setData("targetOutput", meta.output);
+      container.setData("role", "target-selector");
+      zone.on("pointerdown", () => {
+        this.programmedSequenceTargetOutput = meta.output;
+        this.redrawSequenceTargetSelectors();
+        this.renderProgrammedSequenceSlots();
+      });
+      this.sequenceProgrammerObjects.push(container);
+    });
+    this.redrawSequenceTargetSelectors();
+  }
+
+  private redrawSequenceTargetSelectors(): void {
+    this.sequenceProgrammerObjects.forEach((object) => {
+      if (!(object instanceof Phaser.GameObjects.Container) || object.getData("role") !== "target-selector") {
+        return;
+      }
+      const selected = object.getData("targetOutput") === this.programmedSequenceTargetOutput;
+      const background = object.list[0];
+      if (!(background instanceof Phaser.GameObjects.Graphics)) {
+        return;
+      }
+      background.clear();
+      background.fillStyle(selected ? 0x0e3042 : 0x07131e, selected ? 0.94 : 0.78);
+      background.fillRoundedRect(-102, -27, 204, 54, 6);
+      background.lineStyle(2, selected ? 0x7df7ff : 0x3c8ca8, selected ? 0.92 : 0.48);
+      background.strokeRoundedRect(-100, -25, 200, 50, 5);
+    });
+  }
+
+  private createSequenceOperationPalette(panelX: number, panelY: number): void {
+    const operations: ProgrammedSequenceStep[] = [
+      { operation: "addition", value: 10, label: "+10" },
+      { operation: "addition", value: 5, label: "+5" },
+      { operation: "subtraction", value: -10, label: "-10" },
+      { operation: "multiply", value: 2, label: "x2" },
+      { operation: "division", value: 2, label: "/2" }
+    ];
+
+    operations.forEach((step, index) => {
+      this.createProgrammerOperationChip(panelX + 96, panelY + 204 + index * 64, step, "palette");
+    });
+  }
+
+  private createSequenceSlots(panelX: number, panelY: number, panelWidth: number): void {
+    const slotStartX = panelX + 275;
+    const slotY = panelY + 198;
+    for (let index = 0; index < 5; index += 1) {
+      const x = slotStartX + index * SEQUENCE_PROGRAMMER_SLOT_GAP;
+      const y = slotY;
+      const slot = this.add.graphics().setDepth(90).setScrollFactor(0);
+      slot.fillStyle(0x06111d, 0.72);
+      slot.fillRoundedRect(x - SEQUENCE_PROGRAMMER_SLOT_SIZE / 2, y - SEQUENCE_PROGRAMMER_SLOT_SIZE / 2, SEQUENCE_PROGRAMMER_SLOT_SIZE, SEQUENCE_PROGRAMMER_SLOT_SIZE, 6);
+      slot.lineStyle(2, 0x7df7ff, 0.45);
+      slot.strokeRoundedRect(x - SEQUENCE_PROGRAMMER_SLOT_SIZE / 2 + 2, y - SEQUENCE_PROGRAMMER_SLOT_SIZE / 2 + 2, SEQUENCE_PROGRAMMER_SLOT_SIZE - 4, SEQUENCE_PROGRAMMER_SLOT_SIZE - 4, 5);
+      const label = this.add.text(x, y + 48, `SLOT ${index + 1}`, {
+        fontFamily: "Consolas",
+        fontSize: "12px",
+        color: "#7df7ff"
+      }).setOrigin(0.5).setDepth(90).setScrollFactor(0);
+      this.sequenceProgrammerSlotCenters[index] = { x, y, width: SEQUENCE_PROGRAMMER_SLOT_SIZE, height: SEQUENCE_PROGRAMMER_SLOT_SIZE };
+      this.sequenceProgrammerObjects.push(slot, label);
+    }
+
+    this.sequenceProgrammerResultText = this.add.text(panelX + panelWidth / 2, panelY + 322, "", {
+      fontFamily: "Consolas",
+      fontSize: "24px",
+      fontStyle: "bold",
+      color: "#b8fbff",
+      align: "center",
+      wordWrap: { width: panelWidth - 120, useAdvancedWrap: true }
+    }).setOrigin(0.5).setDepth(90).setScrollFactor(0);
+    this.sequenceProgrammerObjects.push(this.sequenceProgrammerResultText);
+  }
+
+  private createProgrammerOperationChip(
+    x: number,
+    y: number,
+    step: ProgrammedSequenceStep,
+    source: "palette" | "slot",
+    slotIndex?: number
+  ): Phaser.GameObjects.Container {
+    const background = this.add.graphics();
+    background.fillStyle(source === "palette" ? 0x0b2537 : 0x112f25, 0.92);
+    background.fillRoundedRect(-SEQUENCE_PROGRAMMER_SLOT_SIZE / 2, -SEQUENCE_PROGRAMMER_SLOT_SIZE / 2, SEQUENCE_PROGRAMMER_SLOT_SIZE, SEQUENCE_PROGRAMMER_SLOT_SIZE, 6);
+    background.lineStyle(2, source === "palette" ? 0x7df7ff : 0x57ffb0, 0.9);
+    background.strokeRoundedRect(-SEQUENCE_PROGRAMMER_SLOT_SIZE / 2 + 2, -SEQUENCE_PROGRAMMER_SLOT_SIZE / 2 + 2, SEQUENCE_PROGRAMMER_SLOT_SIZE - 4, SEQUENCE_PROGRAMMER_SLOT_SIZE - 4, 5);
+    const text = this.add.text(0, 0, step.label, {
+      fontFamily: "Consolas",
+      fontSize: "21px",
+      fontStyle: "bold",
+      color: "#e9fbff"
+    }).setOrigin(0.5);
+    const chip = this.add.container(x, y, [background, text]).setDepth(92).setScrollFactor(0);
+    chip.setData("programmerChip", true);
+    chip.setData("source", source);
+    chip.setData("slotIndex", slotIndex);
+    chip.setData("step", step);
+    chip.setSize(SEQUENCE_PROGRAMMER_SLOT_SIZE, SEQUENCE_PROGRAMMER_SLOT_SIZE);
+    chip.setInteractive({ useHandCursor: true, draggable: true });
+    this.input.setDraggable(chip);
+    chip.on("drag", (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
+      chip.setPosition(dragX, dragY);
+    });
+    chip.on("dragend", () => {
+      const targetIndex = this.findSequenceSlotIndexAt(chip.x, chip.y);
+      if (targetIndex === undefined) {
+        if (source === "slot" && slotIndex !== undefined) {
+          this.programmedSequence[slotIndex] = undefined;
+          this.renderProgrammedSequenceSlots();
+          return;
+        }
+        chip.setPosition(x, y);
+        return;
+      }
+
+      const previousSlotIndex = source === "slot" ? slotIndex : undefined;
+      if (previousSlotIndex !== undefined && previousSlotIndex !== targetIndex) {
+        const displaced = this.programmedSequence[targetIndex];
+        this.programmedSequence[targetIndex] = step;
+        this.programmedSequence[previousSlotIndex] = displaced;
+      } else {
+        this.programmedSequence[targetIndex] = { ...step };
+      }
+      if (source === "palette") {
+        chip.setPosition(x, y);
+      }
+      this.renderProgrammedSequenceSlots();
+    });
+    chip.on("pointerdown", () => {
+      if (source === "slot" && slotIndex !== undefined) {
+        this.programmedSequence[slotIndex] = undefined;
+        this.renderProgrammedSequenceSlots();
+      }
+    });
+
+    this.sequenceProgrammerObjects.push(chip);
+    if (source === "slot") {
+      this.sequenceProgrammerDynamicObjects.push(chip);
+    }
+    return chip;
+  }
+
+  private findSequenceSlotIndexAt(x: number, y: number): number | undefined {
+    const index = this.sequenceProgrammerSlotCenters.findIndex((slot) =>
+      Math.abs(x - slot.x) <= slot.width / 2 && Math.abs(y - slot.y) <= slot.height / 2
+    );
+    return index >= 0 ? index : undefined;
+  }
+
+  private renderProgrammedSequenceSlots(): void {
+    this.sequenceProgrammerDynamicObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+      this.sequenceProgrammerObjects = this.sequenceProgrammerObjects.filter((item) => item !== object);
+    });
+    this.sequenceProgrammerDynamicObjects = [];
+
+    this.programmedSequence.forEach((step, index) => {
+      const slot = this.sequenceProgrammerSlotCenters[index];
+      if (!step || !slot) {
+        return;
+      }
+      this.createProgrammerOperationChip(slot.x, slot.y, step, "slot", index);
+    });
+
+    const meta = biomaStoreApi.getState().metas.find((item) => item.output === this.programmedSequenceTargetOutput);
+    this.sequenceProgrammerResultText?.setText(meta ? `${this.getOutputLabel(meta.output)}: ${meta.current} -> ${meta.goal}` : "");
+    this.sequenceProgrammerResultText?.setColor("#b8fbff");
+  }
+
+  private createSequenceExecuteButton(x: number, y: number): void {
+    const background = this.add.graphics();
+    background.fillStyle(0x0b2537, 0.92);
+    background.fillRoundedRect(-145, -23, 290, 46, 6);
+    background.lineStyle(2, 0x7df7ff, 0.92);
+    background.strokeRoundedRect(-142, -20, 284, 40, 5);
+    const label = this.add.text(0, 0, "▶ EXECUTAR SEQUÊNCIA", {
+      fontFamily: "Consolas",
+      fontSize: "18px",
+      fontStyle: "bold",
+      color: "#e9fbff"
+    }).setOrigin(0.5);
+    const zone = this.add.zone(0, 0, 290, 50).setInteractive({ useHandCursor: true });
+    zone.on("pointerdown", () => this.executeProgrammedSequence());
+    const button = this.add.container(x, y, [background, label, zone]).setDepth(91).setScrollFactor(0);
+    this.sequenceProgrammerObjects.push(button);
+  }
+
+  private createSequenceCloseButton(x: number, y: number): void {
+    const button = this.add.text(x, y, "×", {
+      fontFamily: "Arial",
+      fontSize: "34px",
+      fontStyle: "bold",
+      color: "#ff8aaa"
+    }).setOrigin(0.5).setDepth(92).setScrollFactor(0);
+    button.setInteractive({ useHandCursor: true });
+    button.on("pointerdown", () => this.closeSequenceProgrammerPopup());
+    this.sequenceProgrammerObjects.push(button);
+  }
+
+  private executeProgrammedSequence(): void {
+    if (this.currentSubLevel !== 8 || !this.isSequenceProgrammerOpen) {
+      return;
+    }
+
+    const steps = this.programmedSequence.filter((step): step is ProgrammedSequenceStep => Boolean(step));
+    const meta = biomaStoreApi.getState().metas.find((item) => item.output === this.programmedSequenceTargetOutput);
+    if (!meta || steps.length === 0) {
+      this.showProgrammerStatus("Algoritmo incompleto", false);
+      return;
+    }
+
+    let value = meta.current;
+    const values = [value];
+    for (const step of steps) {
+      if (isCascataDivisionOperation(step.operation) && value % step.value !== 0) {
+        this.showProgrammerStatus("Sequência instável\nA divisão geraria energia fracionada.", false);
+        return;
+      }
+      value = this.applyOperation(value, step.operation, step.value);
+      values.push(value);
+    }
+
+    this.animateProgrammedSequenceExecution(values, value === meta.goal, () => {
+      if (value !== meta.goal) {
+        this.showProgrammerStatus(`Fluxo não estabilizado\nResultado: ${value} / Meta: ${meta.goal}`, false);
+        return;
+      }
+
+      const currentMetas = biomaStoreApi.getState().metas;
+      const updatedOutputs: Record<string, number> = {};
+      currentMetas.forEach((item) => {
+        updatedOutputs[item.output] = item.output === meta.output ? value : item.current;
+      });
+
+      this.currentMoves += 1;
+      this.updateMoveCounter();
+      this.playAudioPlaceholder(AUDIO_AUTOMATION_EXECUTE_KEY);
+      this.closeSequenceProgrammerPopup();
+      biomaStoreApi.getState().atualizarProgresso(updatedOutputs);
+      const slotView = [...this.slotViews.values()].find((slot) => slot.output === meta.output);
+      if (slotView) {
+        this.playAutomationSequenceFeedback(slotView, steps.length);
+      }
+      this.programmedSequence = Array(5).fill(undefined);
+    });
+  }
+
+  private animateProgrammedSequenceExecution(values: number[], success: boolean, onComplete: () => void): void {
+    const text = this.sequenceProgrammerResultText;
+    if (!text) {
+      onComplete();
+      return;
+    }
+
+    this.playAudioPlaceholder(AUDIO_SEQUENCE_SELECT_KEY);
+    const line = values.map((value) => String(value)).join("\n↓\n");
+    text.setText(line);
+    text.setColor(success ? "#b9ffd9" : "#ffb4a8");
+    text.setShadow(0, 0, success ? "#57ffb0" : "#ff306f", 12, true, true);
+
+    const slotView = [...this.slotViews.values()].find((slot) => slot.output === this.programmedSequenceTargetOutput);
+    if (slotView) {
+      this.createElectricParticles(slotView, 18, success ? 0x7df7ff : 0xff326b);
+      this.playDebugCoreFeedback(slotView, success);
+    }
+
+    values.slice(1).forEach((_value, index) => {
+      const event = this.time.addEvent({
+        delay: index * 180,
+        callback: () => {
+          if (!this.isSequenceProgrammerOpen) {
+            return;
+          }
+          this.createSequenceExecutionPulse(success ? 0x7df7ff : 0xff326b);
+        }
+      });
+      this.sequenceProgrammerEvents.push(event);
+    });
+
+    const completeEvent = this.time.addEvent({
+      delay: Math.max(520, values.length * 190),
+      callback: onComplete
+    });
+    this.sequenceProgrammerEvents.push(completeEvent);
+  }
+
+  private createSequenceExecutionPulse(color: number): void {
+    const target = biomaStoreApi.getState().metas.find((item) => item.output === this.programmedSequenceTargetOutput);
+    const slotView = target ? [...this.slotViews.values()].find((slot) => slot.output === target.output) : undefined;
+    const originX = slotView?.slot.x ?? this.scale.width / 2;
+    const originY = slotView?.slot.y ?? this.scale.height / 2;
+    const pulse = this.add.circle(originX, originY, 12, color, 0).setDepth(28);
+    pulse.setStrokeStyle(3, color, 0.72);
+    pulse.setBlendMode(Phaser.BlendModes.ADD);
+    this.sequenceProgrammerObjects.push(pulse);
+    this.tweens.add({
+      targets: pulse,
+      radius: 78,
+      alpha: 0,
+      duration: 520,
+      ease: "Sine.Out",
+      onComplete: () => {
+        this.sequenceProgrammerObjects = this.sequenceProgrammerObjects.filter((object) => object !== pulse);
+        pulse.destroy();
+      }
+    });
+  }
+
+  private showProgrammerStatus(message: string, success: boolean): void {
+    this.sequenceProgrammerResultText
+      ?.setText(message)
+      .setColor(success ? "#b9ffd9" : "#ffb4a8")
+      .setShadow(0, 0, success ? "#57ffb0" : "#ff306f", 12, true, true);
+    this.playAudioPlaceholder(success ? AUDIO_SEQUENCE_SUCCESS_KEY : AUDIO_FINAL_WARNING_KEY);
+  }
+
+  private createSequenceProgrammerParticles(panelX: number, panelY: number, panelWidth: number, panelHeight: number): void {
+    const event = this.time.addEvent({
+      delay: 420,
+      loop: true,
+      callback: () => {
+        if (!this.isSequenceProgrammerOpen) {
+          return;
+        }
+        const particle = this.add.rectangle(
+          panelX + Phaser.Math.Between(40, Math.floor(panelWidth - 40)),
+          panelY + panelHeight - 46,
+          Phaser.Math.Between(4, 10),
+          2,
+          Phaser.Math.Between(0, 1) === 0 ? 0x7df7ff : 0xff4bd8,
+          0.62
+        ).setDepth(91).setScrollFactor(0);
+        particle.setBlendMode(Phaser.BlendModes.ADD);
+        this.sequenceProgrammerObjects.push(particle);
+        this.tweens.add({
+          targets: particle,
+          y: particle.y - Phaser.Math.Between(34, 82),
+          alpha: 0,
+          duration: Phaser.Math.Between(760, 1240),
+          ease: "Sine.Out",
+          onComplete: () => {
+            this.sequenceProgrammerObjects = this.sequenceProgrammerObjects.filter((object) => object !== particle);
+            particle.destroy();
+          }
+        });
+      }
+    });
+    this.sequenceProgrammerEvents.push(event);
+  }
+
+  private closeSequenceProgrammerPopup(): void {
+    this.sequenceProgrammerEvents.forEach((event) => event.remove(false));
+    this.sequenceProgrammerEvents = [];
+    this.sequenceProgrammerObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.sequenceProgrammerObjects = [];
+    this.sequenceProgrammerDynamicObjects = [];
+    this.sequenceProgrammerSlotCenters = [];
+    this.sequenceProgrammerResultText = undefined;
+    this.isSequenceProgrammerOpen = false;
+    this.homeButton?.setInteractive({ useHandCursor: true });
   }
 
   private updateSequenceLocks(): void {
@@ -3832,7 +4574,7 @@ export class CascataScene extends Phaser.Scene {
         return;
       }
 
-      const color = route === "crystal-to-distributors" || route === "crystal-to-reservoirs" ? 0xf8e6a0 : 0x8cf8ff;
+      const color = this.getPhaseEnergyRouteColor(route);
       const path = this.add.graphics().setDepth(3.15).setAlpha(0);
       path.setBlendMode(Phaser.BlendModes.ADD);
 
@@ -3861,6 +4603,26 @@ export class CascataScene extends Phaser.Scene {
         ease: "Sine.InOut"
       });
     });
+  }
+
+  private getPhaseEnergyRouteColor(route: Phase6EnergyRoute): number {
+    if (this.currentSubLevel === 7) {
+      switch (route) {
+        case "crystal-to-cascade":
+          return 0x7df7ff;
+        case "crystal-to-portals":
+          return 0x57ffb0;
+        case "crystal-to-conductors":
+        case "crystal-to-distributors":
+          return 0xff326b;
+        case "crystal-to-reservoirs":
+          return 0xff4bd8;
+        default:
+          return 0x7df7ff;
+      }
+    }
+
+    return route === "crystal-to-distributors" || route === "crystal-to-reservoirs" ? 0xf8e6a0 : 0x8cf8ff;
   }
 
   private createPhase6EnergyPulse(route: Phase6EnergyRoute, color = 0xffffff, duration = 900): void {
@@ -3904,7 +4666,7 @@ export class CascataScene extends Phaser.Scene {
       delay,
       loop: true,
       callback: () => {
-        if (this.currentSubLevel !== 6 || !this.phase6EnergyPaths.has(route)) {
+        if ((this.currentSubLevel !== 6 && this.currentSubLevel !== 7) || !this.phase6EnergyPaths.has(route)) {
           return;
         }
 
@@ -4036,6 +4798,76 @@ export class CascataScene extends Phaser.Scene {
       const position = this.getPhase6EnergyNodePosition("orb");
       this.phase6CascadeOrb.setPosition(position.x, position.y);
     }
+    this.layoutPhase7Visuals();
+    this.layoutPhase8Visuals();
+  }
+
+  private layoutPhase7Visuals(): void {
+    this.phase7VisualObjects.forEach((object) => {
+      const role = object.getData("phase7Role") as string | undefined;
+      if (!role) {
+        return;
+      }
+
+      if (role === "atmosphere" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase7AtmosphereOverlay(object);
+        return;
+      }
+
+      if (role === "red-leak" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase7RedLeak(object);
+        return;
+      }
+
+      if (role === "circuits" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase7CircuitLayer(object);
+        return;
+      }
+
+      if (role === "crystal" && object instanceof Phaser.GameObjects.Container) {
+        const position = this.getPhase6EnergyNodePosition("orb");
+        object.setPosition(position.x, position.y);
+      }
+    });
+  }
+
+  private layoutPhase8Visuals(): void {
+    this.phase8VisualObjects.forEach((object) => {
+      const role = object.getData("phase8Role") as string | undefined;
+      if (!role) {
+        return;
+      }
+
+      if (role === "atmosphere" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase8AtmosphereOverlay(object);
+        return;
+      }
+
+      if (role === "instability" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase8InstabilityOverlay(object);
+        return;
+      }
+
+      if (role === "primary-flow" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase8PrimaryFlow(object);
+        return;
+      }
+
+      if (role === "network" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase8ConvergenceNetwork(object);
+        return;
+      }
+
+      if (role === "final-calm" && object instanceof Phaser.GameObjects.Graphics) {
+        this.drawPhase8FinalCalm(object);
+        return;
+      }
+
+      if (role === "quantum-core" && object instanceof Phaser.GameObjects.Container) {
+        const position = this.getPhase8QuantumCorePosition();
+        object.setPosition(position.x, position.y);
+      }
+    });
   }
 
   private drawPhase6EnergyPath(path?: Phase6EnergyPath): void {
@@ -4127,6 +4959,8 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private clearPhase6EnergyNetwork(): void {
+    this.clearPhase7Visuals();
+    this.clearPhase8Visuals();
     this.phase6EnergyEvents.forEach((event) => event.remove(false));
     this.phase6EnergyEvents = [];
     this.phase6EnergyObjects.forEach((object) => {
@@ -4139,6 +4973,26 @@ export class CascataScene extends Phaser.Scene {
     this.phase6CascadeOrb = undefined;
     this.phase6SyncTargets.forEach((target) => this.tweens.killTweensOf(target));
     this.phase6SyncTargets = [];
+  }
+
+  private clearPhase7Visuals(): void {
+    this.phase7VisualEvents.forEach((event) => event.remove(false));
+    this.phase7VisualEvents = [];
+    this.phase7VisualObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.phase7VisualObjects = [];
+  }
+
+  private clearPhase8Visuals(): void {
+    this.phase8VisualEvents.forEach((event) => event.remove(false));
+    this.phase8VisualEvents = [];
+    this.phase8VisualObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.phase8VisualObjects = [];
   }
 
   private playSequenceInstability(slotView: SlotView): void {
@@ -4217,14 +5071,119 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private playAudioPlaceholder(audioKey: string): void {
-    const placeholderPath = AUDIO_PLACEHOLDER_PATHS[audioKey];
-    if (!placeholderPath) {
+    this.playCascadeSfx(audioKey);
+  }
+
+  private startCascadeAudioSystem(): void {
+    if (this.cascadeAudioStarted) {
       return;
     }
 
-    if (this.cache.audio.exists(audioKey)) {
-      this.sound.play(audioKey);
+    this.cascadeAudioStarted = true;
+    CASCATA_MUSIC_KEYS.forEach((musicKey) => {
+      if (!this.cache.audio.exists(musicKey)) {
+        return;
+      }
+
+      const layer = this.sound.add(musicKey, { loop: true, volume: 0 });
+      this.cascadeMusicLayers.set(musicKey, layer);
+    });
+
+    const startLayers = () => {
+      this.cascadeMusicLayers.forEach((layer) => {
+        if (!layer.isPlaying) {
+          layer.play();
+        }
+      });
+      this.transitionCascadeMusic(this.currentSubLevel, 900);
+    };
+
+    if (this.sound.locked) {
+      this.sound.once(Phaser.Sound.Events.UNLOCKED, startLayers);
+      return;
     }
+
+    startLayers();
+  }
+
+  private stopCascadeAudioSystem(): void {
+    this.cascadeMusicLayers.forEach((layer) => {
+      this.tweens.killTweensOf(layer);
+      layer.stop();
+      layer.destroy();
+    });
+    this.cascadeMusicLayers.clear();
+    this.cascadeAudioStarted = false;
+  }
+
+  private transitionCascadeMusic(phase: number, duration = 1200): void {
+    if (!this.cascadeAudioStarted) {
+      return;
+    }
+
+    const mix = CASCATA_PHASE_MIXES[phase] ?? CASCATA_PHASE_MIXES[1] ?? {};
+    this.cascadeMusicLayers.forEach((layer, musicKey) => {
+      const targetVolume = mix[musicKey] ?? 0;
+      this.fadeSoundTo(layer, targetVolume, duration);
+      if (!layer.isPlaying && targetVolume > 0 && !this.sound.locked) {
+        layer.play();
+      }
+    });
+  }
+
+  private resolveCascadeAudioFinale(): void {
+    this.cascadeMusicLayers.forEach((layer) => this.fadeSoundTo(layer, 0, 650));
+    this.time.delayedCall(850, () => {
+      const restoredLayer = this.cascadeMusicLayers.get(AUDIO_MUSIC_RESTORED_KEY);
+      if (!restoredLayer || !this.cache.audio.exists(AUDIO_MUSIC_RESTORED_KEY)) {
+        return;
+      }
+      if (!restoredLayer.isPlaying && !this.sound.locked) {
+        restoredLayer.play();
+      }
+      this.fadeSoundTo(restoredLayer, 0.42, 1800);
+      this.playCascadeSfx(AUDIO_CASCADE_RESTORED_KEY, 0.36);
+    });
+  }
+
+  private playCascadeSfx(audioKey: string, volume = 0.34): void {
+    if (!AUDIO_ASSET_PATHS[audioKey] || !this.cache.audio.exists(audioKey)) {
+      return;
+    }
+
+    const now = this.time.now;
+    const previous = this.lastSfxPlayedAt.get(audioKey) ?? 0;
+    if (now - previous < 70) {
+      return;
+    }
+
+    this.lastSfxPlayedAt.set(audioKey, now);
+    this.sound.play(audioKey, { volume });
+  }
+
+  private fadeSoundTo(sound: Phaser.Sound.BaseSound, volume: number, duration: number): void {
+    const controller = { volume: this.getSoundVolume(sound) };
+    this.tweens.killTweensOf(sound);
+    this.tweens.add({
+      targets: controller,
+      volume,
+      duration,
+      ease: "Sine.InOut",
+      onUpdate: () => this.setSoundVolume(sound, controller.volume)
+    });
+  }
+
+  private getSoundVolume(sound: Phaser.Sound.BaseSound): number {
+    return (sound as Phaser.Sound.BaseSound & { volume?: number }).volume ?? 0;
+  }
+
+  private setSoundVolume(sound: Phaser.Sound.BaseSound, volume: number): void {
+    const soundWithVolume = sound as Phaser.Sound.BaseSound & { setVolume?: (value: number) => void; volume?: number };
+    if (soundWithVolume.setVolume) {
+      soundWithVolume.setVolume(volume);
+      return;
+    }
+    soundWithVolume.volume = volume;
   }
 
   private resetSceneSessionState(): void {
@@ -4248,6 +5207,22 @@ export class CascataScene extends Phaser.Scene {
     this.phase6ActivatedStages.clear();
     this.phase6CascadeOrb = undefined;
     this.phase6SyncTargets = [];
+    this.phase7VisualObjects = [];
+    this.phase7VisualEvents = [];
+    this.phase8VisualObjects = [];
+    this.phase8VisualEvents = [];
+    this.phase8FinalStable = false;
+    this.phase6To7NarrativeObjects = [];
+    this.phase6To7NarrativeEvents = [];
+    this.isPhase6To7NarrativeOpen = false;
+    this.sequenceProgrammerObjects = [];
+    this.sequenceProgrammerDynamicObjects = [];
+    this.sequenceProgrammerEvents = [];
+    this.isSequenceProgrammerOpen = false;
+    this.programmedSequence = Array(5).fill(undefined);
+    this.programmedSequenceTargetOutput = "Solo";
+    this.sequenceProgrammerSlotCenters = [];
+    this.sequenceProgrammerResultText = undefined;
     this.firstRestoreDecorationShown = false;
     this.slotViews.clear();
     this.slotObjects = [];
@@ -4507,13 +5482,16 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.tweens.killTweensOf(existingSupport.image);
+    const depth = config.textureKey === FLUXO_AGUA_SENSOR_FASE_06_KEY
+      ? FASE_06_CRISTAL_DEPTH
+      : config.depth ?? existingSupport.image.depth;
     existingSupport.image
       .setTexture(config.textureKey)
       .setPosition(config.x, config.y)
       .setOrigin(0, 0)
       .setScale(1)
       .setAngle(config.angle ?? 0)
-      .setDepth(config.depth ?? existingSupport.image.depth)
+      .setDepth(depth)
       .setAlpha(1)
       .clearTint();
   }
@@ -4558,6 +5536,16 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private applyPhaseVisualTheme(): void {
+    if (this.currentSubLevel === 7) {
+      this.applyPhase7BuggieCoreVisuals();
+      return;
+    }
+
+    if (this.currentSubLevel === 8) {
+      this.applyPhase8CascadeCollapseVisuals();
+      return;
+    }
+
     if (this.currentSubLevel >= 6) {
       this.phaseElements.forEach((element) => {
         element.image.clearTint().setAlpha(1);
@@ -4577,6 +5565,734 @@ export class CascataScene extends Phaser.Scene {
     }
   }
 
+  private applyPhase7BuggieCoreVisuals(): void {
+    this.clearPhase7Visuals();
+    this.clearPhase8Visuals();
+    this.setSceneBackground(BACKGROUND_RESTORED_FASE_06_KEY);
+    this.setCascataOverlayImmediate(CASCATA_FASE_06_KEY);
+
+    this.phaseElements.forEach((element) => {
+      const output = element.image.getData("output") as string | undefined;
+      element.image.clearTint().setAlpha(0.96);
+      if (output === "Arvores") {
+        element.image.setTint(0xff7aa8);
+      } else if (output === "Flores") {
+        element.image.setTint(0xa7f8ff);
+      }
+    });
+
+    this.createEnergyNetwork(
+      ["crystal-to-cascade", "crystal-to-conductors", "crystal-to-portals", "crystal-to-reservoirs", "crystal-to-distributors"],
+      0.62
+    );
+    this.createPhase6FlowParticles("crystal-to-cascade", 0x7df7ff, 900);
+    this.createPhase6FlowParticles("crystal-to-conductors", 0xff326b, 1080);
+    this.createPhase6FlowParticles("crystal-to-portals", 0x57ffb0, 980);
+    this.createPhase6FlowParticles("crystal-to-reservoirs", 0xff4bd8, 1180);
+    this.createPhase6FlowParticles("crystal-to-distributors", 0xff326b, 1040);
+
+    this.createPhase7AtmosphereOverlay();
+    this.createPhase7CircuitLayer();
+    this.createPhase7CorruptedCrystal();
+    this.createPhase7AmbientParticles();
+    this.createPhase7BinaryLeak();
+    this.createPhase7GlitchFlicker();
+  }
+
+  private applyPhase8CascadeCollapseVisuals(): void {
+    this.clearPhase7Visuals();
+    this.clearPhase8Visuals();
+    this.phase8FinalStable = false;
+    this.setSceneBackground(BACKGROUND_RESTORED_FASE_06_KEY);
+    this.setCascataOverlayImmediate(CASCATA_FASE_06_KEY);
+
+    this.phaseElements.forEach((element) => {
+      const output = element.image.getData("output") as string | undefined;
+      element.image.clearTint().setAlpha(0.98);
+      if (output === "Solo") {
+        element.image.setTint(0xbefbff);
+      } else if (output === "Arvores") {
+        element.image.setTint(0xff6a91);
+      } else if (output === "Flores") {
+        element.image.setTint(0xe8feff);
+      }
+    });
+    this.applyPhase8HiddenCrystalWaterFlow();
+
+    this.createEnergyNetwork(
+      ["crystal-to-cascade", "crystal-to-conductors", "crystal-to-portals", "crystal-to-reservoirs", "crystal-to-distributors"],
+      0.78
+    );
+    this.createPhase6FlowParticles("crystal-to-cascade", 0xffffff, 620);
+    this.createPhase6FlowParticles("crystal-to-conductors", 0x7df7ff, 760);
+    this.createPhase6FlowParticles("crystal-to-portals", 0xff326b, 820);
+    this.createPhase6FlowParticles("crystal-to-reservoirs", 0x7df7ff, 700);
+    this.createPhase6FlowParticles("crystal-to-distributors", 0xff4bd8, 780);
+
+    this.createPhase8AtmosphereOverlay();
+    this.createPhase8PrimaryFlow();
+    this.createPhase8ConvergenceNetwork();
+    this.createPhase8QuantumCore();
+    this.createPhase8CollapseParticles();
+    this.createPhase8GlitchFlicker();
+  }
+
+  private trackPhase7VisualObject<T extends Phaser.GameObjects.GameObject>(object: T): T {
+    this.phase7VisualObjects.push(object);
+    return object;
+  }
+
+  private createPhase7AtmosphereOverlay(): void {
+    const overlay = this.trackPhase7VisualObject(this.add.graphics().setDepth(-0.7).setAlpha(0.86));
+    overlay.setData("phase7Role", "atmosphere");
+    overlay.setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.drawPhase7AtmosphereOverlay(overlay);
+
+    const redLeak = this.trackPhase7VisualObject(this.add.graphics().setDepth(-0.6).setAlpha(0.42));
+    redLeak.setData("phase7Role", "red-leak");
+    redLeak.setBlendMode(Phaser.BlendModes.ADD);
+    this.drawPhase7RedLeak(redLeak);
+
+    this.tweens.add({
+      targets: redLeak,
+      alpha: 0.18,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private drawPhase7AtmosphereOverlay(overlay: Phaser.GameObjects.Graphics): void {
+    overlay.clear();
+    overlay.fillStyle(0x050712, 0.46);
+    overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+    overlay.fillStyle(0x190012, 0.22);
+    overlay.fillRect(this.scale.width * 0.34, 0, this.scale.width * 0.42, this.scale.height);
+  }
+
+  private drawPhase7RedLeak(redLeak: Phaser.GameObjects.Graphics): void {
+    redLeak.clear();
+    const crystal = this.getPhase6EnergyNodePosition("crystal");
+    redLeak.fillStyle(0xff1d5e, 0.16);
+    redLeak.fillCircle(crystal.x, crystal.y, 180);
+    redLeak.fillStyle(0x7df7ff, 0.1);
+    redLeak.fillCircle(this.scale.width * 0.42, this.scale.height * 0.36, 220);
+  }
+
+  private createPhase7CircuitLayer(): void {
+    const circuits = this.trackPhase7VisualObject(this.add.graphics().setDepth(3.05).setAlpha(0.72));
+    circuits.setData("phase7Role", "circuits");
+    circuits.setBlendMode(Phaser.BlendModes.ADD);
+    this.drawPhase7CircuitLayer(circuits);
+
+    this.tweens.add({
+      targets: circuits,
+      alpha: 0.38,
+      duration: 980,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private drawPhase7CircuitLayer(circuits: Phaser.GameObjects.Graphics): void {
+    circuits.clear();
+    const crystal = this.getPhase6EnergyNodePosition("crystal");
+    const points = [
+      new Phaser.Math.Vector2(crystal.x - 260, crystal.y + 120),
+      new Phaser.Math.Vector2(crystal.x - 120, crystal.y + 86),
+      new Phaser.Math.Vector2(crystal.x + 40, crystal.y + 130),
+      new Phaser.Math.Vector2(crystal.x + 220, crystal.y + 74)
+    ];
+
+    circuits.lineStyle(2, 0x57ffb0, 0.48);
+    this.strokePolyline(circuits, points.slice(0, 3));
+    circuits.lineStyle(3, 0xff326b, 0.62);
+    this.strokePolyline(circuits, points.slice(1));
+    points.forEach((point, index) => {
+      circuits.fillStyle(index % 2 === 0 ? 0x7df7ff : 0xff326b, 0.42);
+      circuits.fillCircle(point.x, point.y, index % 2 === 0 ? 5 : 7);
+    });
+  }
+
+  private createPhase7CorruptedCrystal(): void {
+    const position = this.getPhase6EnergyNodePosition("orb");
+    const outerGlow = this.add.circle(0, 0, 58, 0xff326b, 0.2);
+    const cyanGlow = this.add.circle(0, 0, 42, 0x7df7ff, 0.18);
+    const core = this.add.polygon(0, 0, [0, -42, 28, -8, 15, 38, -18, 35, -30, -8], 0x9ffbff, 0.48);
+    core.setStrokeStyle(3, 0xff326b, 0.92);
+    const crackA = this.add.rectangle(-2, -7, 4, 54, 0xff174f, 0.86).setAngle(-18);
+    const crackB = this.add.rectangle(10, 9, 3, 34, 0xff6bc8, 0.72).setAngle(34);
+    const orbitA = this.add.circle(54, 0, 4, 0xff326b, 0.9);
+    const orbitB = this.add.circle(-42, 26, 3, 0x7df7ff, 0.82);
+    const orbitC = this.add.rectangle(18, -52, 12, 4, 0xff4bd8, 0.82).setAngle(18);
+    const orbitLayer = this.add.container(0, 0, [orbitA, orbitB, orbitC]);
+
+    const crystal = this.trackPhase7VisualObject(
+      this.add.container(position.x, position.y, [outerGlow, cyanGlow, core, crackA, crackB, orbitLayer]).setDepth(4).setAlpha(0.92)
+    );
+    crystal.setData("phase7Role", "crystal");
+    crystal.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.tweens.add({
+      targets: [outerGlow, cyanGlow, core],
+      scaleX: 1.14,
+      scaleY: 1.14,
+      alpha: 0.95,
+      duration: 760,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+    this.tweens.add({
+      targets: orbitLayer,
+      angle: 360,
+      duration: 2600,
+      repeat: -1,
+      ease: "Linear"
+    });
+    this.tweens.add({
+      targets: crystal,
+      angle: 2,
+      duration: 120,
+      yoyo: true,
+      repeat: -1,
+      repeatDelay: 920,
+      ease: "Stepped"
+    });
+  }
+
+  private createPhase7AmbientParticles(): void {
+    const event = this.time.addEvent({
+      delay: 220,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 7) {
+          return;
+        }
+
+        const crystal = this.getPhase6EnergyNodePosition("crystal");
+        const color = Phaser.Math.Between(0, 1) === 0 ? 0x7df7ff : 0xff326b;
+        const particle = this.trackPhase7VisualObject(
+          this.add.rectangle(
+            crystal.x + Phaser.Math.Between(-280, 260),
+            crystal.y + Phaser.Math.Between(-170, 190),
+            Phaser.Math.Between(4, 12),
+            2,
+            color,
+            0.78
+          ).setDepth(4.2).setAngle(Phaser.Math.Between(-30, 30))
+        );
+        particle.setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: particle,
+          x: particle.x + Phaser.Math.Between(-18, 18),
+          y: particle.y - Phaser.Math.Between(16, 48),
+          alpha: 0,
+          duration: Phaser.Math.Between(520, 920),
+          ease: "Sine.Out",
+          onComplete: () => {
+            this.phase7VisualObjects = this.phase7VisualObjects.filter((object) => object !== particle);
+            particle.destroy();
+          }
+        });
+      }
+    });
+    this.phase7VisualEvents.push(event);
+  }
+
+  private createPhase7BinaryLeak(): void {
+    const event = this.time.addEvent({
+      delay: 520,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 7) {
+          return;
+        }
+
+        const cascade = this.getPhase6EnergyNodePosition("cascade");
+        const text = this.trackPhase7VisualObject(
+          this.add.text(
+            cascade.x + Phaser.Math.Between(-85, 105),
+            cascade.y + Phaser.Math.Between(45, 125),
+            Phaser.Math.Between(0, 1) === 0 ? "101" : "010",
+            {
+              fontFamily: "Consolas",
+              fontSize: "15px",
+              color: "#ff3b78"
+            }
+          ).setDepth(4.1).setAlpha(0.7)
+        );
+        text.setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: text,
+          y: text.y - Phaser.Math.Between(48, 90),
+          alpha: 0,
+          duration: Phaser.Math.Between(900, 1450),
+          ease: "Sine.Out",
+          onComplete: () => {
+            this.phase7VisualObjects = this.phase7VisualObjects.filter((object) => object !== text);
+            text.destroy();
+          }
+        });
+      }
+    });
+    this.phase7VisualEvents.push(event);
+  }
+
+  private createPhase7GlitchFlicker(): void {
+    const event = this.time.addEvent({
+      delay: 1350,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 7) {
+          return;
+        }
+
+        const y = this.scale.height * Phaser.Math.FloatBetween(0.28, 0.72);
+        const glitch = this.trackPhase7VisualObject(
+          this.add.rectangle(this.scale.width / 2, y, this.scale.width * Phaser.Math.FloatBetween(0.18, 0.38), 3, 0xff326b, 0.55)
+            .setDepth(4.3)
+        );
+        glitch.setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: glitch,
+          alpha: 0,
+          x: glitch.x + Phaser.Math.Between(-28, 28),
+          duration: 180,
+          ease: "Stepped",
+          onComplete: () => {
+            this.phase7VisualObjects = this.phase7VisualObjects.filter((object) => object !== glitch);
+            glitch.destroy();
+          }
+        });
+      }
+    });
+    this.phase7VisualEvents.push(event);
+  }
+
+  private trackPhase8VisualObject<T extends Phaser.GameObjects.GameObject>(object: T): T {
+    this.phase8VisualObjects.push(object);
+    return object;
+  }
+
+  private getPhase8QuantumCorePosition(): Phaser.Math.Vector2 {
+    return new Phaser.Math.Vector2(this.scale.width * 0.5, this.scale.height * 0.43);
+  }
+
+  private createPhase8AtmosphereOverlay(): void {
+    const overlay = this.trackPhase8VisualObject(this.add.graphics().setDepth(-0.75).setAlpha(0.9));
+    overlay.setData("phase8Role", "atmosphere");
+    overlay.setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.drawPhase8AtmosphereOverlay(overlay);
+
+    const instability = this.trackPhase8VisualObject(this.add.graphics().setDepth(-0.55).setAlpha(0.44));
+    instability.setData("phase8Role", "instability");
+    instability.setBlendMode(Phaser.BlendModes.ADD);
+    this.drawPhase8InstabilityOverlay(instability);
+
+    this.tweens.add({
+      targets: instability,
+      alpha: 0.18,
+      duration: 860,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private drawPhase8AtmosphereOverlay(overlay: Phaser.GameObjects.Graphics): void {
+    overlay.clear();
+    overlay.fillStyle(0x030711, 0.52);
+    overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+    overlay.fillStyle(0x160013, 0.18);
+    overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+  }
+
+  private drawPhase8InstabilityOverlay(instability: Phaser.GameObjects.Graphics): void {
+    const core = this.getPhase8QuantumCorePosition();
+    instability.clear();
+    instability.fillStyle(0x7df7ff, 0.12);
+    instability.fillCircle(core.x, core.y, 270);
+    instability.fillStyle(0xff245e, 0.13);
+    instability.fillCircle(core.x + 26, core.y - 14, 210);
+    instability.fillStyle(0xffffff, 0.08);
+    instability.fillCircle(core.x, core.y, 120);
+  }
+
+  private createPhase8PrimaryFlow(): void {
+    const flow = this.trackPhase8VisualObject(this.add.graphics().setDepth(2.8).setAlpha(0.82));
+    flow.setData("phase8Role", "primary-flow");
+    flow.setBlendMode(Phaser.BlendModes.ADD);
+    this.drawPhase8PrimaryFlow(flow);
+
+    this.tweens.add({
+      targets: flow,
+      alpha: 0.44,
+      duration: 640,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private drawPhase8PrimaryFlow(flow: Phaser.GameObjects.Graphics): void {
+    const core = this.getPhase8QuantumCorePosition();
+    const cascadeTop = new Phaser.Math.Vector2(this.scale.width * 0.42, this.scale.height * 0.22);
+    const cascadeMid = new Phaser.Math.Vector2(this.scale.width * 0.43, this.scale.height * 0.37);
+    const cascadeLow = new Phaser.Math.Vector2(this.scale.width * 0.46, this.scale.height * 0.52);
+    flow.clear();
+    flow.lineStyle(18, 0x7df7ff, 0.1);
+    this.strokePolyline(flow, [cascadeTop, cascadeMid, cascadeLow, core]);
+    flow.lineStyle(8, 0xffffff, 0.22);
+    this.strokePolyline(flow, [cascadeTop, cascadeMid, cascadeLow, core]);
+    flow.lineStyle(3, 0xff326b, 0.35);
+    this.strokePolyline(flow, [
+      new Phaser.Math.Vector2(cascadeMid.x + 18, cascadeMid.y - 18),
+      new Phaser.Math.Vector2(cascadeLow.x + 42, cascadeLow.y - 26),
+      new Phaser.Math.Vector2(core.x + 38, core.y + 20)
+    ]);
+  }
+
+  private createPhase8ConvergenceNetwork(): void {
+    const network = this.trackPhase8VisualObject(this.add.graphics().setDepth(3.35).setAlpha(0.78));
+    network.setData("phase8Role", "network");
+    network.setBlendMode(Phaser.BlendModes.ADD);
+    this.drawPhase8ConvergenceNetwork(network);
+
+    this.tweens.add({
+      targets: network,
+      alpha: 0.38,
+      duration: 720,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private drawPhase8ConvergenceNetwork(network: Phaser.GameObjects.Graphics): void {
+    const core = this.getPhase8QuantumCorePosition();
+    const points = [
+      this.getPhase6EnergyNodePosition("cascade"),
+      this.getPhase6EnergyNodePosition("conductors"),
+      this.getPhase6EnergyNodePosition("portals"),
+      this.getPhase6EnergyNodePosition("reservoirs"),
+      this.getPhase6EnergyNodePosition("distributors"),
+      new Phaser.Math.Vector2(this.scale.width * 0.28, this.scale.height * 0.58),
+      new Phaser.Math.Vector2(this.scale.width * 0.7, this.scale.height * 0.56)
+    ];
+
+    network.clear();
+    points.forEach((point, index) => {
+      const color = index % 3 === 0 ? 0xffffff : index % 2 === 0 ? 0x7df7ff : 0xff326b;
+      network.lineStyle(index % 2 === 0 ? 3 : 2, color, index % 2 === 0 ? 0.42 : 0.34);
+      this.strokePolyline(network, [point, new Phaser.Math.Vector2((point.x + core.x) / 2, point.y - 46), core]);
+      network.fillStyle(color, 0.62);
+      network.fillCircle(point.x, point.y, index % 2 === 0 ? 6 : 4);
+    });
+  }
+
+  private createPhase8QuantumCore(): void {
+    const position = this.getPhase8QuantumCorePosition();
+    const outerGlow = this.add.circle(0, 0, 118, 0x7df7ff, 0.14);
+    const redGlow = this.add.circle(12, -8, 92, 0xff245e, 0.16);
+    const whiteCore = this.add.circle(0, 0, 42, 0xffffff, 0.72);
+    const cyanCore = this.add.circle(0, 0, 64, 0x7df7ff, 0.22);
+    const shell = this.add.polygon(0, 0, [0, -78, 52, -36, 68, 34, 0, 82, -68, 32, -50, -38], 0xdffcff, 0.22);
+    shell.setStrokeStyle(3, 0x7df7ff, 0.78);
+    const crackA = this.add.rectangle(-10, -12, 5, 90, 0xff326b, 0.82).setAngle(-26);
+    const crackB = this.add.rectangle(26, 10, 4, 64, 0xff6bc8, 0.68).setAngle(38);
+    const orbitLayer = this.add.container(0, 0, [
+      this.add.circle(106, 0, 5, 0xffffff, 0.92),
+      this.add.circle(-78, 64, 4, 0xff326b, 0.88),
+      this.add.rectangle(44, -94, 22, 4, 0x7df7ff, 0.82).setAngle(18),
+      this.add.circle(-106, -24, 4, 0xff4bd8, 0.78)
+    ]);
+    const rings = this.add.graphics();
+    rings.lineStyle(2, 0xffffff, 0.26);
+    rings.strokeEllipse(0, 0, 210, 118);
+    rings.lineStyle(2, 0xff326b, 0.28);
+    rings.strokeEllipse(0, 0, 160, 230);
+
+    const core = this.trackPhase8VisualObject(
+      this.add.container(position.x, position.y, [outerGlow, redGlow, rings, shell, cyanCore, whiteCore, crackA, crackB, orbitLayer])
+        .setDepth(4.8)
+        .setAlpha(0.96)
+    );
+    core.setData("phase8Role", "quantum-core");
+    core.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.tweens.add({
+      targets: [outerGlow, redGlow, cyanCore, whiteCore, shell],
+      scaleX: 1.12,
+      scaleY: 1.12,
+      alpha: 0.92,
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+    this.tweens.add({
+      targets: orbitLayer,
+      angle: 360,
+      duration: 1900,
+      repeat: -1,
+      ease: "Linear"
+    });
+    this.tweens.add({
+      targets: rings,
+      angle: -360,
+      duration: 5200,
+      repeat: -1,
+      ease: "Linear"
+    });
+    this.tweens.add({
+      targets: core,
+      scaleX: 1.03,
+      scaleY: 0.98,
+      duration: 300,
+      yoyo: true,
+      repeat: -1,
+      repeatDelay: 280,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private createPhase8CollapseParticles(): void {
+    const event = this.time.addEvent({
+      delay: 140,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 8 || this.phase8FinalStable) {
+          return;
+        }
+
+        const core = this.getPhase8QuantumCorePosition();
+        const side = Phaser.Math.Between(0, 3);
+        const startX = side === 0 ? 0 : side === 1 ? this.scale.width : Phaser.Math.Between(0, this.scale.width);
+        const startY = side === 2 ? 0 : side === 3 ? this.scale.height : Phaser.Math.Between(0, this.scale.height);
+        const color = Phaser.Math.Between(0, 4) === 0 ? 0xff326b : Phaser.Math.Between(0, 1) === 0 ? 0x7df7ff : 0xffffff;
+        const particle = this.trackPhase8VisualObject(
+          this.add.rectangle(startX, startY, Phaser.Math.Between(5, 14), 3, color, 0.82)
+            .setDepth(5.1)
+            .setAngle(Phaser.Math.Between(-40, 40))
+        );
+        particle.setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: particle,
+          x: core.x + Phaser.Math.Between(-84, 84),
+          y: core.y + Phaser.Math.Between(-78, 78),
+          alpha: 0,
+          duration: Phaser.Math.Between(700, 1250),
+          ease: "Sine.In",
+          onComplete: () => {
+            this.phase8VisualObjects = this.phase8VisualObjects.filter((object) => object !== particle);
+            particle.destroy();
+          }
+        });
+      }
+    });
+    this.phase8VisualEvents.push(event);
+  }
+
+  private createPhase8GlitchFlicker(): void {
+    const event = this.time.addEvent({
+      delay: 780,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 8 || this.phase8FinalStable) {
+          return;
+        }
+
+        const core = this.getPhase8QuantumCorePosition();
+        const glitch = this.trackPhase8VisualObject(
+          this.add.rectangle(
+            core.x + Phaser.Math.Between(-260, 260),
+            core.y + Phaser.Math.Between(-180, 190),
+            Phaser.Math.Between(90, 260),
+            Phaser.Math.Between(2, 5),
+            Phaser.Math.Between(0, 1) === 0 ? 0xff326b : 0x7df7ff,
+            0.52
+          ).setDepth(5.2)
+        );
+        glitch.setBlendMode(Phaser.BlendModes.ADD);
+        this.cameras.main.shake(90, 0.0016);
+        this.tweens.add({
+          targets: glitch,
+          x: glitch.x + Phaser.Math.Between(-34, 34),
+          alpha: 0,
+          duration: 150,
+          ease: "Stepped",
+          onComplete: () => {
+            this.phase8VisualObjects = this.phase8VisualObjects.filter((object) => object !== glitch);
+            glitch.destroy();
+          }
+        });
+      }
+    });
+    this.phase8VisualEvents.push(event);
+  }
+
+  private stabilizePhase8FinalVisuals(): void {
+    this.phase8FinalStable = true;
+    this.clearPhase6EnergyNetwork();
+    this.setSceneBackground(BACKGROUND_RESTORED_FASE_08_KEY);
+    this.setCascataOverlayImmediate(CASCATA_FASE_06_KEY);
+    this.phaseElements.forEach((element) => element.image.clearTint().setAlpha(1));
+    this.applyPhase8RestoredCrystalWaterFlow();
+
+    const calm = this.trackPhase8VisualObject(this.add.graphics().setDepth(-0.5).setAlpha(0.42));
+    calm.setData("phase8Role", "final-calm");
+    calm.setBlendMode(Phaser.BlendModes.ADD);
+    this.drawPhase8FinalCalm(calm);
+
+    const position = this.getPhase8QuantumCorePosition();
+    const glow = this.add.circle(0, 0, 110, 0x7df7ff, 0.18);
+    const core = this.add.circle(0, 0, 46, 0xffffff, 0.82);
+    const ring = this.add.graphics();
+    ring.lineStyle(3, 0x7df7ff, 0.44);
+    ring.strokeCircle(0, 0, 76);
+    const stableCore = this.trackPhase8VisualObject(
+      this.add.container(position.x, position.y, [glow, ring, core]).setDepth(4.8).setAlpha(0)
+    );
+    stableCore.setData("phase8Role", "quantum-core");
+    stableCore.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.tweens.add({
+      targets: stableCore,
+      alpha: 0.92,
+      scaleX: { from: 0.92, to: 1 },
+      scaleY: { from: 0.92, to: 1 },
+      duration: 700,
+      ease: "Sine.Out"
+    });
+    this.tweens.add({
+      targets: [glow, core],
+      scaleX: 1.06,
+      scaleY: 1.06,
+      duration: 1600,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+
+    const event = this.time.addEvent({
+      delay: 520,
+      loop: true,
+      callback: () => {
+        if (this.currentSubLevel !== 8 || !this.phase8FinalStable) {
+          return;
+        }
+        const particle = this.trackPhase8VisualObject(
+          this.add.circle(
+            position.x + Phaser.Math.Between(-220, 220),
+            position.y + Phaser.Math.Between(-140, 160),
+            Phaser.Math.Between(2, 5),
+            Phaser.Math.Between(0, 1) === 0 ? 0xffffff : 0x7df7ff,
+            0.58
+          ).setDepth(5)
+        );
+        particle.setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: particle,
+          y: particle.y - Phaser.Math.Between(22, 54),
+          alpha: 0,
+          duration: Phaser.Math.Between(1400, 2200),
+          ease: "Sine.Out",
+          onComplete: () => {
+            this.phase8VisualObjects = this.phase8VisualObjects.filter((object) => object !== particle);
+            particle.destroy();
+          }
+        });
+      }
+    });
+    this.phase8VisualEvents.push(event);
+  }
+
+  private drawPhase8FinalCalm(calm: Phaser.GameObjects.Graphics): void {
+    const core = this.getPhase8QuantumCorePosition();
+    calm.clear();
+    calm.fillStyle(0x7df7ff, 0.1);
+    calm.fillCircle(core.x, core.y, 320);
+    calm.fillStyle(0xffffff, 0.08);
+    calm.fillCircle(core.x, core.y, 180);
+  }
+
+  private applyPhase8HiddenCrystalWaterFlow(): void {
+    this.applyPhaseSupportConfig({
+      id: "agua_flor",
+      textureKey: FLUXO_AGUA_SENSOR_FASE_04_KEY,
+      path: FLUXO_AGUA_SENSOR_FASE_04_PATH,
+      x: 0,
+      y: 0,
+      depth: -2
+    });
+  }
+
+  private applyPhase8RestoredCrystalWaterFlow(): void {
+    this.applyPhaseSupportConfig({
+      id: "agua_flor",
+      textureKey: FLUXO_AGUA_SENSOR_FASE_06_KEY,
+      path: FLUXO_AGUA_SENSOR_FASE_06_PATH,
+      x: 0,
+      y: 0,
+      depth: FASE_06_CRISTAL_DEPTH
+    });
+  }
+
+  private applyPhase6CrystalWaterFlow(): void {
+    const configs: PhaseElementConfig[] = [
+      {
+        id: "agua_flor",
+        textureKey: FLUXO_AGUA_SENSOR_FASE_06_KEY,
+        path: FLUXO_AGUA_SENSOR_FASE_06_PATH,
+        x: 0,
+        y: 0,
+        depth: FASE_06_CRISTAL_DEPTH
+      },
+      {
+        id: "agua_solo",
+        textureKey: FLUXO_AGUA_SOLO_FASE_05_KEY,
+        path: FLUXO_AGUA_SOLO_FASE_05_PATH,
+        x: 0,
+        y: 0,
+        depth: -16
+      }
+    ];
+
+    configs.forEach((config, index) => {
+      this.time.addEvent({
+        delay: index * 180,
+        callback: () => this.applyPhaseSupportConfig(config)
+      });
+    });
+  }
+
+  private applyPhaseSupportConfig(config: PhaseElementConfig): void {
+    const existingSupport = this.phaseElements.get(config.id);
+    if (!existingSupport) {
+      const image = this.createPhaseElementFromConfig(config, 0);
+      this.fadeImageIn(image, 760);
+      return;
+    }
+
+    this.transitionImageTexture(
+      existingSupport.image,
+      config.textureKey,
+      () => {
+        existingSupport.image
+          .setPosition(0, 0)
+          .setOrigin(0, 0)
+          .setScale(1)
+          .setAngle(config.angle ?? 0)
+          .setDepth(config.depth ?? existingSupport.image.depth)
+          .clearTint();
+      },
+      760
+    );
+  }
+
   private restoreTopic(output: string): void {
     if (this.restoredTopics.has(output)) {
       return;
@@ -4587,26 +6303,17 @@ export class CascataScene extends Phaser.Scene {
     this.activateEnergySync(output);
 
     if (this.currentSubLevel === 6 && output === "Flores") {
-      this.setCascataOverlayTexture(CASCATA_FASE_06_KEY);
-      this.ensurePhaseSupportImmediate({
-        id: "agua_flor",
-        textureKey: this.textures.exists(FLUXO_AGUA_SENSOR_FASE_06_KEY)
-          ? FLUXO_AGUA_SENSOR_FASE_06_KEY
-          : FLUXO_AGUA_SENSOR_FASE_04_KEY,
-        path: this.textures.exists(FLUXO_AGUA_SENSOR_FASE_06_KEY)
-          ? FLUXO_AGUA_SENSOR_FASE_06_PATH
-          : FLUXO_AGUA_SENSOR_FASE_04_PATH,
-        x: 0,
-        y: 0,
-        depth: -2
-      });
+      this.applyPhase6CrystalWaterFlow();
+      return;
     }
 
-    if (!this.firstRestoreDecorationShown && (this.currentSubLevel !== 6 || output === "Flores")) {
+    if (this.currentSubLevel >= 6) {
+      return;
+    }
+
+    if (!this.firstRestoreDecorationShown) {
       const firstCascataTexture =
-        this.currentSubLevel === 6 && output === "Flores"
-          ? CASCATA_FASE_06_KEY
-          : this.currentSubLevel === 4 && output === "Solo"
+        this.currentSubLevel === 4 && output === "Solo"
             ? CASCATA_FASE_04_KEY
             : this.getCurrentCascataTextureKey();
       this.time.addEvent({
@@ -4669,27 +6376,9 @@ export class CascataScene extends Phaser.Scene {
       });
     }
 
-    if (this.currentSubLevel === 6 && this.areAllCurrentMetasComplete()) {
-      this.fullscreenRestoredBackground?.setTexture(BACKGROUND_RESTORED_FASE_06_KEY);
-      this.tweens.add({
-        targets: this.fullscreenCorruptedBackground,
-        alpha: 0,
-        duration: 900,
-        ease: "Sine.Out"
-      });
-      this.tweens.add({
-        targets: this.fullscreenRestoredBackground,
-        alpha: 1,
-        duration: 900,
-        ease: "Sine.Out"
-      });
-    }
-
     this.applyPhase3RestoreAssets(output);
 
-    const deadSprites = this.currentSubLevel === 6
-      ? []
-      : [...this.phaseElements.values()]
+    const deadSprites = [...this.phaseElements.values()]
       .filter((element) => {
         if (this.currentSubLevel === 3 && (output === "Flores" || output === "Arvores")) {
           return false;
@@ -4850,7 +6539,7 @@ export class CascataScene extends Phaser.Scene {
               : FLUXO_AGUA_SENSOR_FASE_04_PATH,
             x: 0,
             y: 0,
-            depth: -2
+            depth: FASE_06_CRISTAL_DEPTH
           }
         ];
       }
@@ -5239,6 +6928,8 @@ export class CascataScene extends Phaser.Scene {
   private clearDynamicLevelObjects(): void {
     this.clearRobotIntroduction();
     this.closeDebugPopup();
+    this.closePhase6To7NarrativePopup();
+    this.closeSequenceProgrammerPopup();
     this.clearPredictionPreview();
     this.slotObjects.forEach((object) => object.destroy());
     this.slotObjects = [];
@@ -5293,6 +6984,11 @@ export class CascataScene extends Phaser.Scene {
     this.autoReturnTimeoutId = window.setTimeout(() => {
       this.autoReturnTimeoutId = undefined;
       this.homeButton?.setInteractive({ useHandCursor: true });
+      if (this.currentSubLevel === 6 && nextLevel === 7) {
+        this.showPhase6To7NarrativePopup();
+        this.autoReturnScheduled = false;
+        return;
+      }
       this.setupLevel(nextLevel, { preservePhaseVisuals: true });
       this.autoReturnScheduled = false;
     }, delayMs);
@@ -5309,10 +7005,20 @@ export class CascataScene extends Phaser.Scene {
 
     this.autoReturnTimeoutId = window.setTimeout(() => {
       this.autoReturnTimeoutId = undefined;
-      this.cameras.main.fadeOut(650, 8, 14, 22);
-      this.time.delayedCall(700, () => {
+      const goToWorldMap = () => {
         this.autoReturnScheduled = false;
-        this.scene.start("WorldMapScene");
+        this.scene.start("WorldMapScene", { fromCascataComplete: true });
+      };
+
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, goToWorldMap);
+      this.cameras.main.fadeOut(650, 8, 14, 22);
+
+      this.time.delayedCall(950, () => {
+        if (!this.autoReturnScheduled) {
+          return;
+        }
+        this.cameras.main.off(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, goToWorldMap);
+        goToWorldMap();
       });
     }, delayMs);
   }

@@ -172,6 +172,8 @@ export class WorldMapScene extends Phaser.Scene {
   public create(): void {
     this.setupWorldMetrics();
     this.setupCameras();
+    this.worldCamera.fadeIn(450, 8, 14, 22);
+    this.uiCamera?.fadeIn(450, 8, 14, 22);
 
     this.createBackgroundLayer();
     this.createWorldPath();

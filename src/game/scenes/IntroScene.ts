@@ -34,6 +34,10 @@ const VULCAO_WORLD_DEAD_KEY = "world-node-vulcao-dead";
 const VULCAO_WORLD_DEAD_PATH = "assets/images/Mundos/VulcaoMorto.png";
 const PARTICLE_KEY = "intro-particle";
 const GLINT_KEY = "intro-glint";
+const INTRO_AMBIENT_AUDIO_KEY = "intro-ambient-discovery";
+const INTRO_AMBIENT_AUDIO_PATH = "assets/audio/music/intro_descoberta.wav";
+const INTRO_MAGIC_PARTICLE_AUDIO_KEY = "intro-magic-particles";
+const INTRO_MAGIC_PARTICLE_AUDIO_PATH = "assets/audio/sfx/intro_particles.wav";
 
 const INTRO_WORLDS = [
   { key: CASCATA_WORLD_DEAD_KEY, x: 176, y: 350, size: 132, color: 0x67e8f9 },
@@ -131,6 +135,7 @@ export class IntroScene extends Phaser.Scene {
   private bottomShade?: Phaser.GameObjects.Rectangle;
   private glowObjects: Phaser.GameObjects.Arc[] = [];
   private cascataGlow?: Phaser.GameObjects.Arc;
+  private introAmbientSound?: Phaser.Sound.BaseSound;
   private baseScale = 1;
   private worldOffsetX = 0;
   private worldOffsetY = 0;
@@ -153,17 +158,28 @@ export class IntroScene extends Phaser.Scene {
         this.load.image(key, path);
       }
     });
+
+    ([
+      [INTRO_AMBIENT_AUDIO_KEY, INTRO_AMBIENT_AUDIO_PATH],
+      [INTRO_MAGIC_PARTICLE_AUDIO_KEY, INTRO_MAGIC_PARTICLE_AUDIO_PATH]
+    ] as [string, string][]).forEach(([key, path]) => {
+      if (!this.cache.audio.exists(key)) {
+        this.load.audio(key, path);
+      }
+    });
   }
 
   public create(): void {
     this.createParticleTexture();
     this.createGlintTexture();
     this.createWorldBackdrop();
+    this.startIntroSoundscape();
     this.createIntroSequence();
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+      this.stopIntroSoundscape();
     });
   }
 
@@ -236,6 +252,67 @@ export class IntroScene extends Phaser.Scene {
   private createIntroSequence(): void {
     this.cameras.main.fadeIn(1000, 2, 4, 9);
     this.runIntroMoment(0);
+  }
+
+  private startIntroSoundscape(): void {
+    if (this.cache.audio.exists(INTRO_AMBIENT_AUDIO_KEY)) {
+      this.introAmbientSound = this.sound.add(INTRO_AMBIENT_AUDIO_KEY, { loop: true, volume: 0 });
+    }
+
+    const startAudio = () => {
+      if (this.introAmbientSound && !this.introAmbientSound.isPlaying) {
+        this.introAmbientSound.play();
+        this.fadeIntroSound(this.introAmbientSound, 0.46, 1800);
+      }
+
+      if (this.cache.audio.exists(INTRO_MAGIC_PARTICLE_AUDIO_KEY)) {
+        this.sound.play(INTRO_MAGIC_PARTICLE_AUDIO_KEY, { volume: 0.38 });
+      }
+    };
+
+    if (this.sound.locked) {
+      this.sound.once(Phaser.Sound.Events.UNLOCKED, startAudio);
+      return;
+    }
+
+    startAudio();
+  }
+
+  private stopIntroSoundscape(): void {
+    if (!this.introAmbientSound) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.introAmbientSound);
+    this.introAmbientSound.stop();
+    this.introAmbientSound.destroy();
+    this.introAmbientSound = undefined;
+  }
+
+  private fadeIntroSound(sound: Phaser.Sound.BaseSound, volume: number, duration: number, onComplete?: () => void): void {
+    const controller = { volume: this.getIntroSoundVolume(sound) };
+    this.tweens.killTweensOf(sound);
+    this.tweens.add({
+      targets: controller,
+      volume,
+      duration,
+      ease: "Sine.InOut",
+      onUpdate: () => this.setIntroSoundVolume(sound, controller.volume),
+      onComplete
+    });
+  }
+
+  private getIntroSoundVolume(sound: Phaser.Sound.BaseSound): number {
+    return (sound as Phaser.Sound.BaseSound & { volume?: number }).volume ?? 0;
+  }
+
+  private setIntroSoundVolume(sound: Phaser.Sound.BaseSound, volume: number): void {
+    const soundWithVolume = sound as Phaser.Sound.BaseSound & { setVolume?: (value: number) => void; volume?: number };
+    if (soundWithVolume.setVolume) {
+      soundWithVolume.setVolume(volume);
+      return;
+    }
+    soundWithVolume.volume = volume;
   }
 
   private runIntroMoment(index: number): void {
@@ -552,6 +629,9 @@ export class IntroScene extends Phaser.Scene {
   }
 
   private startWorldMap(): void {
+    if (this.introAmbientSound) {
+      this.fadeIntroSound(this.introAmbientSound, 0, 900);
+    }
     this.cameras.main.fadeOut(1100, 2, 4, 9);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.scene.start("WorldMapScene");
