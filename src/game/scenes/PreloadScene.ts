@@ -35,8 +35,8 @@ export class PreloadScene extends Phaser.Scene {
     });
 
     // Assets de UI Globais (carregados uma única vez)
-    this.load.image("ui-placa-nivel", "assets/images/Botoes/PlacaNivel.png");
-    this.load.image("ui-painel-robos", "assets/images/Botoes/PlacaRobos.png");
+    this.load.image("ui-placa-nivel", "assets/images/Botoes/PlacaFase.png");
+    this.load.image("ui-painel-robos", "assets/images/Botoes/PlacaFase.png");
     this.load.image("ui-btn-back", "assets/images/Botoes/Back.png");
     this.load.image("ui-btn-next", "assets/images/Botoes/Next.png");
     this.load.image("ui-btn-home", "assets/images/Botoes/Home.png");

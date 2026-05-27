@@ -35,9 +35,9 @@ export class GameScene extends Phaser.Scene {
   private static readonly BASE_WIDTH = 1024;
   private static readonly BASE_HEIGHT = 640;
   private static readonly LEVEL_PLAQUE_KEY = "level-plaque";
-  private static readonly LEVEL_PLAQUE_PATH = "assets/images/Botoes/PlacaNivel.png";
+  private static readonly LEVEL_PLAQUE_PATH = "assets/images/Botoes/PlacaFase.png";
   private static readonly ROBOT_PANEL_KEY = "robot-panel-plaque";
-  private static readonly ROBOT_PANEL_PATH = "assets/images/Botoes/PlacaRobos.png";
+  private static readonly ROBOT_PANEL_PATH = "assets/images/Botoes/PlacaFase.png";
   private static readonly BACK_BUTTON_KEY = "robot-back-button";
   private static readonly BACK_BUTTON_PATH = "assets/images/Botoes/Back.png";
   private static readonly TOP_PADDING = 26;

@@ -1,6 +1,8 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
+import { cpSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 function toChunkName(name: string) {
   return name
@@ -10,7 +12,30 @@ function toChunkName(name: string) {
     .toLowerCase();
 }
 
+function copyAudioAssets(): Plugin {
+  let root = process.cwd();
+  let outDir = "dist";
+
+  return {
+    name: "copy-audio-assets",
+    configResolved(config: ResolvedConfig) {
+      root = config.root;
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      const audioSource = resolve(root, "assets", "audio");
+
+      if (existsSync(audioSource)) {
+        cpSync(audioSource, resolve(outDir, "assets", "audio"), {
+          recursive: true
+        });
+      }
+    }
+  };
+}
+
 export default defineConfig({
+  base: "/LogCraft/",
   build: {
     rollupOptions: {
       output: {
@@ -64,5 +89,6 @@ export default defineConfig({
         lossless: true,
       },
     }),
+    copyAudioAssets(),
   ],
 });

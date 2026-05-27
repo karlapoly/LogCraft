@@ -24,7 +24,7 @@ function isLevelConfig(value: unknown): value is LevelConfig {
 
 export class LevelLoader {
   public getLevelUrl(levelId: string): string {
-    return `/levels/${levelId}.json`;
+    return `${import.meta.env.BASE_URL}levels/${levelId}.json`;
   }
 
   public getCacheKey(levelId: string): string {

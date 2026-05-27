@@ -2,8 +2,8 @@
   "id": "level-01",
   "nome": "A Cascata de Dados: Clareira Inicial",
   "biome": {
-    "restaurado": "assets/images/Back_faseResolvida.png",
-    "corrompido": "assets/images/Back_faseBugg.png"
+    "restaurado": "assets/images/Fase01/FundoVivo.png",
+    "corrompido": "assets/images/Fase01/FundoMorto.png"
   },
   "robotSpawn": {
     "x": 132,
@@ -24,4 +24,3 @@
     "robo_divisao": "assets/images/Robos/Subtracao.png"
   }
 }
-
