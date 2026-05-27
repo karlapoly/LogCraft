@@ -670,8 +670,8 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
       { operation: "division", texture: ROBO_DIVISAO_KEY, label: "/2", x: 298, y: -46, value: 2 }
     ],
     targets: [
-      { output: "Flores", initial: 200, goal: 50 },
-      { output: "Arvores", initial: 25, goal: 125 },
+      { output: "Flores", initial: 200, goal: 60 },
+      { output: "Arvores", initial: 25, goal: 115 },
       { output: "Solo", initial: 300, goal: 100 }
     ]
   }
@@ -753,6 +753,9 @@ export class CascataScene extends Phaser.Scene {
   private phase6To7NarrativeObjects: Phaser.GameObjects.GameObject[] = [];
   private phase6To7NarrativeEvents: Phaser.Time.TimerEvent[] = [];
   private isPhase6To7NarrativeOpen = false;
+  private finalCompletionPopupObjects: Phaser.GameObjects.GameObject[] = [];
+  private finalCompletionPopupEvents: Phaser.Time.TimerEvent[] = [];
+  private isFinalCompletionPopupOpen = false;
   private sequenceProgrammerObjects: Phaser.GameObjects.GameObject[] = [];
   private sequenceProgrammerDynamicObjects: Phaser.GameObjects.GameObject[] = [];
   private sequenceProgrammerEvents: Phaser.Time.TimerEvent[] = [];
@@ -861,6 +864,7 @@ export class CascataScene extends Phaser.Scene {
       }
       this.clearRobotIntroduction();
       this.closePhase6To7NarrativePopup();
+      this.closeFinalCompletionPopup();
       this.closeSequenceProgrammerPopup();
       if (this.predictionPreviewText) {
         this.predictionPreviewText.destroy();
@@ -2891,7 +2895,7 @@ export class CascataScene extends Phaser.Scene {
       this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
       this.playAudioPlaceholder(AUDIO_FINAL_VICTORY_KEY);
       this.markBiomeAsCompleted();
-      this.scheduleReturnToWorldMap(this.getPendingRestoreDuration() + 5200);
+      this.showFinalCompletionPopup();
     }
   }
 
@@ -3136,11 +3140,16 @@ export class CascataScene extends Phaser.Scene {
 
     const button = this.add.container(x, y, [background, text]);
     button.setSize(width, height);
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
-      Phaser.Geom.Rectangle.Contains
-    );
+    button.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true
+    });
+    let wasClicked = false;
     button.on("pointerover", () => {
+      if (wasClicked) {
+        return;
+      }
       background.clear();
       background.fillStyle(accentColor, 0.2);
       background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
@@ -3149,6 +3158,9 @@ export class CascataScene extends Phaser.Scene {
       text.setColor("#ffffff");
     });
     button.on("pointerout", () => {
+      if (wasClicked) {
+        return;
+      }
       background.clear();
       background.fillStyle(0x17130f, 0.92);
       background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
@@ -3156,7 +3168,21 @@ export class CascataScene extends Phaser.Scene {
       background.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 6);
       text.setColor("#fff5d8");
     });
-    button.on("pointerdown", onClick);
+    button.on("pointerdown", () => {
+      if (wasClicked) {
+        return;
+      }
+
+      wasClicked = true;
+      button.disableInteractive();
+      background.clear();
+      background.fillStyle(accentColor, 0.34);
+      background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
+      background.lineStyle(2, accentColor, 1);
+      background.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 6);
+      text.setColor("#ffffff");
+      onClick();
+    });
     return button;
   }
 
@@ -3281,12 +3307,12 @@ export class CascataScene extends Phaser.Scene {
     ).setOrigin(0.5);
     warning.setShadow(0, 0, "#ff174f", 16, true, true);
 
-    const continueButton = this.createNarrativeContinueButton(panelWidth / 2, panelHeight - 42, () => {
+    const closeButton = this.createNarrativeCloseButton(panelWidth - 40, 40, () => {
       this.closePhase6To7NarrativePopup();
       this.setupLevel(7, { preservePhaseVisuals: true });
     });
 
-    const popup = this.add.container(panelX, panelY + 18, [panel, title, body, warning, continueButton])
+    const popup = this.add.container(panelX, panelY + 18, [panel, title, body, warning, closeButton])
       .setDepth(96)
       .setAlpha(0)
       .setScale(0.96)
@@ -3335,37 +3361,39 @@ export class CascataScene extends Phaser.Scene {
 
   }
 
-  private createNarrativeContinueButton(
+  private createNarrativeCloseButton(
     x: number,
     y: number,
     onClick: () => void
   ): Phaser.GameObjects.Container {
     const background = this.add.graphics();
-    background.fillStyle(0x120915, 0.86);
-    background.fillRoundedRect(-92, -18, 184, 36, 5);
+    background.fillStyle(0x120915, 0.9);
+    background.fillRoundedRect(-18, -18, 36, 36, 5);
     background.lineStyle(2, 0xff326b, 0.86);
-    background.strokeRoundedRect(-90, -16, 180, 32, 5);
-    const label = this.add.text(0, 0, "Continuar", {
+    background.strokeRoundedRect(-16, -16, 32, 32, 5);
+    const label = this.add.text(0, -1, "X", {
       fontFamily: "Consolas",
-      fontSize: "18px",
+      fontSize: "22px",
       fontStyle: "bold",
       color: "#e9fbff"
     }).setOrigin(0.5);
-    const zone = this.add.zone(0, 0, 184, 42).setInteractive({ useHandCursor: true });
+    const zone = this.add.zone(0, 0, 44, 44).setInteractive({ useHandCursor: true });
     zone.on("pointerdown", onClick);
     zone.on("pointerover", () => {
       background.clear();
       background.fillStyle(0x2a0b1a, 0.92);
-      background.fillRoundedRect(-92, -18, 184, 36, 5);
+      background.fillRoundedRect(-18, -18, 36, 36, 5);
       background.lineStyle(2, 0x7df7ff, 0.9);
-      background.strokeRoundedRect(-90, -16, 180, 32, 5);
+      background.strokeRoundedRect(-16, -16, 32, 32, 5);
+      label.setColor("#ffffff");
     });
     zone.on("pointerout", () => {
       background.clear();
-      background.fillStyle(0x120915, 0.86);
-      background.fillRoundedRect(-92, -18, 184, 36, 5);
+      background.fillStyle(0x120915, 0.9);
+      background.fillRoundedRect(-18, -18, 36, 36, 5);
       background.lineStyle(2, 0xff326b, 0.86);
-      background.strokeRoundedRect(-90, -16, 180, 32, 5);
+      background.strokeRoundedRect(-16, -16, 32, 32, 5);
+      label.setColor("#e9fbff");
     });
     return this.add.container(x, y, [background, label, zone]);
   }
@@ -3444,6 +3472,269 @@ export class CascataScene extends Phaser.Scene {
     this.phase6To7NarrativeObjects = [];
     this.isPhase6To7NarrativeOpen = false;
     this.homeButton?.setInteractive({ useHandCursor: true });
+  }
+
+  private showFinalCompletionPopup(): void {
+    if (this.isFinalCompletionPopupOpen) {
+      return;
+    }
+
+    this.isFinalCompletionPopupOpen = true;
+    this.nextButton?.setVisible(false).disableInteractive();
+    this.homeButton?.disableInteractive();
+    this.playAudioPlaceholder(AUDIO_CASCADE_RESTORED_KEY);
+    this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
+
+    const overlay = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x03100f, 0.5)
+      .setOrigin(0, 0)
+      .setDepth(98)
+      .setScrollFactor(0);
+
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+    const panelWidth = Math.min(820, this.scale.width - 64);
+    const panelHeight = Math.min(460, this.scale.height - 70);
+    const panelX = centerX - panelWidth / 2;
+    const panelY = centerY - panelHeight / 2;
+
+    const halo = this.add.circle(centerX, centerY, Math.min(panelWidth, panelHeight) * 0.64, 0x57ffb0, 0.16)
+      .setDepth(99)
+      .setScrollFactor(0);
+    halo.setBlendMode(Phaser.BlendModes.ADD);
+
+    const panel = this.add.graphics();
+    drawFantasyPanelFrame(panel, {
+      width: panelWidth,
+      height: panelHeight,
+      glowColor: 0x7df7ff,
+      glowAlpha: 0.18,
+      glowExpansion: 12,
+      shadowExpansion: 10,
+      shadowRadius: 18,
+      surfaceAlpha: 0.9,
+      darkBorderWidth: 8,
+      darkBorderColor: 0x12302a,
+      accentBorderColor: 0x57ffb0,
+      accentBorderWidth: 3
+    });
+    panel.fillStyle(0x0b241f, 0.72);
+    panel.fillRoundedRect(18, 18, panelWidth - 36, 64, 6);
+    panel.lineStyle(2, 0x7df7ff, 0.52);
+    panel.strokeRoundedRect(20, 20, panelWidth - 40, 60, 5);
+    panel.fillStyle(0x7df7ff, 0.1);
+    for (let y = 100; y < panelHeight - 88; y += 18) {
+      panel.fillRect(34, y, panelWidth - 68, 1);
+    }
+    panel.fillStyle(0x57ffb0, 0.12);
+    panel.fillCircle(74, panelHeight / 2, 54);
+    panel.lineStyle(2, 0x7df7ff, 0.52);
+    panel.strokeCircle(74, panelHeight / 2, 38);
+    panel.lineStyle(2, 0x57ffb0, 0.7);
+    panel.strokeCircle(74, panelHeight / 2, 24);
+
+    const title = this.add.text(panelWidth / 2, 50, "Ecossistema Restaurado", {
+      fontFamily: "Georgia",
+      fontSize: "34px",
+      fontStyle: "bold",
+      color: "#dfffee",
+      stroke: "#06120f",
+      strokeThickness: 5,
+      align: "center"
+    }).setOrigin(0.5);
+    title.setShadow(0, 0, "#57ffb0", 16, true, true);
+
+    const body = this.add.text(
+      panelWidth / 2,
+      panelHeight / 2 + 6,
+      "Parabéns!\nVocê restaurou o primeiro ecossistema da Cascata de Dados.\n\nOs fluxos voltaram a funcionar...\nMas a corrupção ainda existe!\nRetorne ao sistema e continue sua jornada.",
+      {
+        fontFamily: "Georgia",
+        fontSize: "24px",
+        color: "#f5f0df",
+        stroke: "#06120f",
+        strokeThickness: 3,
+        align: "center",
+        lineSpacing: 8,
+        wordWrap: { width: panelWidth - 170, useAdvancedWrap: true }
+      }
+    ).setOrigin(0.5);
+    body.setShadow(0, 2, "#000000", 8, true, true);
+
+    const core = this.add.circle(74, panelHeight / 2, 13, 0xe9fff6, 0.94);
+    core.setStrokeStyle(3, 0x57ffb0, 0.9);
+    const coreGlow = this.add.circle(74, panelHeight / 2, 34, 0x7df7ff, 0.12);
+    coreGlow.setBlendMode(Phaser.BlendModes.ADD);
+
+    const button = this.createFinalCompletionButton(panelWidth / 2, panelHeight - 54, "Retornar ao Mundo", () => {
+      this.closeFinalCompletionPopup();
+      this.scheduleReturnToWorldMap(0, true);
+    });
+
+    const popup = this.add.container(panelX, panelY + 22, [panel, coreGlow, core, title, body, button])
+      .setDepth(100)
+      .setScrollFactor(0)
+      .setAlpha(0)
+      .setScale(0.96);
+
+    this.finalCompletionPopupObjects.push(overlay, halo, popup);
+    this.createFinalCompletionPopupParticles(panelX, panelY, panelWidth, panelHeight);
+
+    this.tweens.add({
+      targets: popup,
+      alpha: 1,
+      y: panelY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 520,
+      ease: "Back.Out"
+    });
+    this.tweens.add({
+      targets: halo,
+      alpha: { from: 0.1, to: 0.28 },
+      scaleX: { from: 0.92, to: 1.08 },
+      scaleY: { from: 0.92, to: 1.08 },
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+    this.tweens.add({
+      targets: [coreGlow, core],
+      scaleX: 1.14,
+      scaleY: 1.14,
+      duration: 980,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut"
+    });
+  }
+
+  private createFinalCompletionButton(
+    x: number,
+    y: number,
+    labelText: string,
+    onClick: () => void
+  ): Phaser.GameObjects.Container {
+    const width = 248;
+    const height = 46;
+    const background = this.add.graphics();
+    const drawButton = (hovered = false) => {
+      background.clear();
+      background.fillStyle(hovered ? 0x12382f : 0x17130f, hovered ? 0.96 : 0.92);
+      background.fillRoundedRect(-width / 2, -height / 2, width, height, 7);
+      background.lineStyle(2, hovered ? 0x7df7ff : 0x57ffb0, hovered ? 1 : 0.9);
+      background.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 6);
+      background.lineStyle(1, 0xf8e6a0, hovered ? 0.5 : 0.28);
+      background.lineBetween(-width / 2 + 18, 0, width / 2 - 18, 0);
+    };
+    drawButton();
+
+    const label = this.add.text(0, 0, labelText, {
+      fontFamily: "Georgia",
+      fontSize: "18px",
+      fontStyle: "bold",
+      color: "#fff5d8",
+      stroke: "#0b1712",
+      strokeThickness: 3
+    }).setOrigin(0.5);
+    label.setShadow(0, 0, "#57ffb0", 8, true, true);
+
+    const zone = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+    zone.on("pointerover", () => {
+      drawButton(true);
+      label.setColor("#ffffff");
+      this.playAudioPlaceholder(AUDIO_ENERGY_CLICK_KEY);
+    });
+    zone.on("pointerout", () => {
+      drawButton(false);
+      label.setColor("#fff5d8");
+    });
+    zone.on("pointerdown", onClick);
+
+    return this.add.container(x, y, [background, label, zone]);
+  }
+
+  private createFinalCompletionPopupParticles(panelX: number, panelY: number, panelWidth: number, panelHeight: number): void {
+    const spawnParticle = () => {
+      if (!this.isFinalCompletionPopupOpen) {
+        return;
+      }
+
+      const color = Phaser.Math.Between(0, 1) === 0 ? 0x57ffb0 : 0x7df7ff;
+      const particle = this.add.circle(
+        panelX + Phaser.Math.Between(42, Math.floor(panelWidth - 42)),
+        panelY + panelHeight - Phaser.Math.Between(28, 74),
+        Phaser.Math.Between(2, 5),
+        color,
+        0.68
+      ).setDepth(101).setScrollFactor(0);
+      particle.setBlendMode(Phaser.BlendModes.ADD);
+      this.finalCompletionPopupObjects.push(particle);
+      this.tweens.add({
+        targets: particle,
+        x: particle.x + Phaser.Math.Between(-26, 26),
+        y: particle.y - Phaser.Math.Between(80, 190),
+        alpha: 0,
+        duration: Phaser.Math.Between(1200, 2100),
+        ease: "Sine.Out",
+        onComplete: () => {
+          this.finalCompletionPopupObjects = this.finalCompletionPopupObjects.filter((object) => object !== particle);
+          particle.destroy();
+        }
+      });
+    };
+
+    const pulse = () => {
+      if (!this.isFinalCompletionPopupOpen) {
+        return;
+      }
+
+      const line = this.add.rectangle(
+        panelX + panelWidth / 2,
+        panelY + Phaser.Math.Between(92, Math.floor(panelHeight - 92)),
+        panelWidth - 92,
+        2,
+        Phaser.Math.Between(0, 1) === 0 ? 0x57ffb0 : 0x7df7ff,
+        0.4
+      ).setDepth(101).setScrollFactor(0);
+      line.setBlendMode(Phaser.BlendModes.ADD);
+      this.finalCompletionPopupObjects.push(line);
+      this.tweens.add({
+        targets: line,
+        alpha: 0,
+        scaleX: 0.16,
+        duration: 700,
+        ease: "Sine.Out",
+        onComplete: () => {
+          this.finalCompletionPopupObjects = this.finalCompletionPopupObjects.filter((object) => object !== line);
+          line.destroy();
+        }
+      });
+    };
+
+    for (let index = 0; index < 18; index += 1) {
+      spawnParticle();
+    }
+
+    this.finalCompletionPopupEvents.push(
+      this.time.addEvent({ delay: 210, loop: true, callback: spawnParticle }),
+      this.time.addEvent({ delay: 840, loop: true, callback: pulse })
+    );
+  }
+
+  private closeFinalCompletionPopup(): void {
+    this.finalCompletionPopupEvents.forEach((event) => event.remove(false));
+    this.finalCompletionPopupEvents = [];
+    this.finalCompletionPopupObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      if (object instanceof Phaser.GameObjects.Container) {
+        object.list.forEach((child) => this.tweens.killTweensOf(child));
+      }
+      object.destroy();
+    });
+    this.finalCompletionPopupObjects = [];
+    this.isFinalCompletionPopupOpen = false;
   }
 
   private showSequenceProgrammerPopup(): void {
@@ -6929,6 +7220,7 @@ export class CascataScene extends Phaser.Scene {
     this.clearRobotIntroduction();
     this.closeDebugPopup();
     this.closePhase6To7NarrativePopup();
+    this.closeFinalCompletionPopup();
     this.closeSequenceProgrammerPopup();
     this.clearPredictionPreview();
     this.slotObjects.forEach((object) => object.destroy());
@@ -6994,33 +7286,36 @@ export class CascataScene extends Phaser.Scene {
     }, delayMs);
   }
 
-  private scheduleReturnToWorldMap(delayMs: number): void {
-    if (this.autoReturnScheduled) {
+  private scheduleReturnToWorldMap(delayMs: number, force = false): void {
+    if (this.autoReturnScheduled && !force) {
       return;
+    }
+
+    if (this.autoReturnTimeoutId) {
+      window.clearTimeout(this.autoReturnTimeoutId);
+      this.autoReturnTimeoutId = undefined;
     }
 
     this.autoReturnScheduled = true;
     this.nextButton?.setVisible(false).disableInteractive();
     this.homeButton?.disableInteractive();
 
+    const goToWorldMap = () => {
+      if (!this.autoReturnScheduled) {
+        return;
+      }
+
+      this.autoReturnScheduled = false;
+      this.cameras.main.resetFX();
+      this.stopCascadeAudioSystem();
+      this.scene.start("WorldMapScene", { fromCascataComplete: true });
+    };
+
+    this.time.delayedCall(delayMs, goToWorldMap);
     this.autoReturnTimeoutId = window.setTimeout(() => {
       this.autoReturnTimeoutId = undefined;
-      const goToWorldMap = () => {
-        this.autoReturnScheduled = false;
-        this.scene.start("WorldMapScene", { fromCascataComplete: true });
-      };
-
-      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, goToWorldMap);
-      this.cameras.main.fadeOut(650, 8, 14, 22);
-
-      this.time.delayedCall(950, () => {
-        if (!this.autoReturnScheduled) {
-          return;
-        }
-        this.cameras.main.off(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, goToWorldMap);
-        goToWorldMap();
-      });
-    }, delayMs);
+      goToWorldMap();
+    }, delayMs + 500);
   }
 
 }
