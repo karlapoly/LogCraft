@@ -692,6 +692,7 @@ export class CascataScene extends Phaser.Scene {
   private missionPanelLine1?: Phaser.GameObjects.Text;
   private missionPanelLine2?: Phaser.GameObjects.Text;
   private isMissionPanelIntroActive = false;
+  private missionPanelIntroObjects: Phaser.GameObjects.GameObject[] = [];
   private panelContainer!: Phaser.GameObjects.Container;
   private robotPanelFrame?: Phaser.GameObjects.Graphics;
   private robotPanelTitle?: Phaser.GameObjects.Text;
@@ -870,6 +871,7 @@ export class CascataScene extends Phaser.Scene {
       this.closeFinalCompletionPopup();
       this.closeSequenceProgrammerPopup();
       this.clearEnergyPanelIntro();
+      this.clearMissionPanelIntro();
       if (this.predictionPreviewText) {
         this.predictionPreviewText.destroy();
         this.predictionPreviewText = undefined;
@@ -1112,42 +1114,66 @@ export class CascataScene extends Phaser.Scene {
       return;
     }
 
+    this.clearMissionPanelIntro();
     this.tweens.killTweensOf(this.missionPanelContainer);
 
     const finalX = SIDE_PADDING;
     const finalY = TOP_PADDING + 94;
-    const centerX = this.scale.width / 2 - MISSION_PANEL_WIDTH / 2;
-    const centerY = this.scale.height / 2 - MISSION_PANEL_HEIGHT / 2;
-    const introScale = Phaser.Math.Clamp(Math.min(this.scale.width / MISSION_PANEL_WIDTH, this.scale.height / MISSION_PANEL_HEIGHT) * 0.74, 1.28, 1.74);
+    const glow = this.add
+      .ellipse(
+        finalX + MISSION_PANEL_WIDTH / 2,
+        finalY + MISSION_PANEL_HEIGHT / 2,
+        MISSION_PANEL_WIDTH + 150,
+        MISSION_PANEL_HEIGHT + 110,
+        0x57ffb0,
+        0
+      )
+      .setDepth(18)
+      .setScrollFactor(0);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    this.missionPanelIntroObjects.push(glow);
 
     this.isMissionPanelIntroActive = true;
     this.missionPanelContainer
-      .setPosition(centerX, centerY)
-      .setScale(introScale)
-      .setAlpha(0)
+      .setPosition(finalX, finalY)
+      .setScale(1)
+      .setAlpha(1)
       .setDepth(24);
 
     this.tweens.add({
-      targets: this.missionPanelContainer,
-      alpha: 1,
-      duration: 260,
-      ease: "Sine.Out"
+      targets: glow,
+      alpha: { from: 0, to: 0.48 },
+      scaleX: { from: 0.88, to: 1.18 },
+      scaleY: { from: 0.88, to: 1.18 },
+      duration: 940,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.InOut",
+      onComplete: () => this.clearMissionPanelIntro()
     });
     this.tweens.add({
       targets: this.missionPanelContainer,
-      x: finalX,
-      y: finalY,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 920,
-      delay: 1100,
-      ease: "Expo.InOut",
+      scaleX: 1.16,
+      scaleY: 1.16,
+      duration: 560,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.InOut",
       onComplete: () => {
         this.isMissionPanelIntroActive = false;
         this.missionPanelContainer?.setDepth(19);
+        this.missionPanelContainer?.setScale(1);
         this.layoutScene(this.scale.width, this.scale.height);
       }
     });
+  }
+
+  private clearMissionPanelIntro(): void {
+    this.missionPanelIntroObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.missionPanelIntroObjects = [];
   }
 
   private updateAuxiliaryTextVisibility(): void {
