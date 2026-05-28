@@ -670,7 +670,7 @@ const SUB_LEVELS: Record<number, CascataSubLevelConfig> = {
       { operation: "division", texture: ROBO_DIVISAO_KEY, label: "/2", x: 298, y: -46, value: 2 }
     ],
     targets: [
-      { output: "Flores", initial: 200, goal: 60 },
+      { output: "Flores", initial: 220, goal: 60 },
       { output: "Arvores", initial: 25, goal: 115 },
       { output: "Solo", initial: 300, goal: 100 }
     ]
@@ -691,6 +691,7 @@ export class CascataScene extends Phaser.Scene {
   private missionPanelTitle?: Phaser.GameObjects.Text;
   private missionPanelLine1?: Phaser.GameObjects.Text;
   private missionPanelLine2?: Phaser.GameObjects.Text;
+  private isMissionPanelIntroActive = false;
   private panelContainer!: Phaser.GameObjects.Container;
   private robotPanelFrame?: Phaser.GameObjects.Graphics;
   private robotPanelTitle?: Phaser.GameObjects.Text;
@@ -705,6 +706,8 @@ export class CascataScene extends Phaser.Scene {
   private energyPanelFrame?: Phaser.GameObjects.Graphics;
   private energyPercentText?: Phaser.GameObjects.Text;
   private energyClickBars: Phaser.GameObjects.Rectangle[] = [];
+  private energyPanelIntroShown = false;
+  private energyPanelIntroObjects: Phaser.GameObjects.GameObject[] = [];
   private phaseElements = new Map<string, PhaseElementView>();
   private restoredTopics = new Set<string>();
   private computationalFlowPaths = new Map<string, ComputationalEnergyPath>();
@@ -866,6 +869,7 @@ export class CascataScene extends Phaser.Scene {
       this.closePhase6To7NarrativePopup();
       this.closeFinalCompletionPopup();
       this.closeSequenceProgrammerPopup();
+      this.clearEnergyPanelIntro();
       if (this.predictionPreviewText) {
         this.predictionPreviewText.destroy();
         this.predictionPreviewText = undefined;
@@ -935,6 +939,8 @@ export class CascataScene extends Phaser.Scene {
     this.resultText?.setColor("#fff5cf");
     this.updateAuxiliaryTextVisibility();
     this.layoutScene(this.scale.width, this.scale.height);
+    this.showMissionPanelIntro();
+    this.tryShowEnergyPanelIntro();
     this.time.delayedCall(220, () => {
       this.showRobotIntroduction();
     });
@@ -1099,6 +1105,49 @@ export class CascataScene extends Phaser.Scene {
     this.missionPanelTitle?.setText(copy.title);
     this.missionPanelLine1?.setText(copy.line1);
     this.missionPanelLine2?.setText(copy.line2);
+  }
+
+  private showMissionPanelIntro(): void {
+    if (!this.missionPanelContainer?.visible) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.missionPanelContainer);
+
+    const finalX = SIDE_PADDING;
+    const finalY = TOP_PADDING + 94;
+    const centerX = this.scale.width / 2 - MISSION_PANEL_WIDTH / 2;
+    const centerY = this.scale.height / 2 - MISSION_PANEL_HEIGHT / 2;
+    const introScale = Phaser.Math.Clamp(Math.min(this.scale.width / MISSION_PANEL_WIDTH, this.scale.height / MISSION_PANEL_HEIGHT) * 0.74, 1.28, 1.74);
+
+    this.isMissionPanelIntroActive = true;
+    this.missionPanelContainer
+      .setPosition(centerX, centerY)
+      .setScale(introScale)
+      .setAlpha(0)
+      .setDepth(24);
+
+    this.tweens.add({
+      targets: this.missionPanelContainer,
+      alpha: 1,
+      duration: 260,
+      ease: "Sine.Out"
+    });
+    this.tweens.add({
+      targets: this.missionPanelContainer,
+      x: finalX,
+      y: finalY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 920,
+      delay: 1100,
+      ease: "Expo.InOut",
+      onComplete: () => {
+        this.isMissionPanelIntroActive = false;
+        this.missionPanelContainer?.setDepth(19);
+        this.layoutScene(this.scale.width, this.scale.height);
+      }
+    });
   }
 
   private updateAuxiliaryTextVisibility(): void {
@@ -1831,6 +1880,169 @@ export class CascataScene extends Phaser.Scene {
     });
   }
 
+  private tryShowEnergyPanelIntro(): void {
+    if (this.energyPanelIntroShown || this.currentSubLevel < 3 || !this.maxMoves) {
+      return;
+    }
+
+    this.energyPanelIntroShown = true;
+    this.time.delayedCall(760, () => {
+      if (this.isRobotIntroActive) {
+        this.energyPanelIntroShown = false;
+        this.tryShowEnergyPanelIntro();
+        return;
+      }
+
+      this.showEnergyPanelIntro();
+    });
+  }
+
+  private showEnergyPanelIntro(): void {
+    if (!this.energyPanelContainer || !this.energyPercentText || !this.energyPanelContainer.visible) {
+      return;
+    }
+
+    this.clearEnergyPanelIntro();
+    this.playAudioPlaceholder(AUDIO_ENERGY_CLICK_KEY);
+
+    const panelX = this.energyPanelContainer.x;
+    const panelY = this.energyPanelContainer.y;
+    const overlay = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x02100d, 0)
+      .setOrigin(0, 0)
+      .setDepth(18)
+      .setScrollFactor(0);
+
+    const glow = this.add
+      .ellipse(
+        panelX + ENERGY_PANEL_WIDTH / 2,
+        panelY + ENERGY_PANEL_HEIGHT / 2,
+        ENERGY_PANEL_WIDTH + 94,
+        ENERGY_PANEL_HEIGHT + 72,
+        0x57ffb0,
+        0
+      )
+      .setDepth(20)
+      .setScrollFactor(0);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+
+    const captionFrame = this.add.graphics().setDepth(22).setScrollFactor(0).setAlpha(0);
+    const captionWidth = Math.min(680, this.scale.width - SIDE_PADDING * 2);
+    const captionHeight = 88;
+    const captionX = this.scale.width / 2 - captionWidth / 2;
+    const captionY = this.scale.height / 2 - captionHeight / 2;
+    captionFrame.fillStyle(0x081914, 0.9);
+    captionFrame.fillRoundedRect(captionX, captionY, captionWidth, captionHeight, 7);
+    captionFrame.lineStyle(2, 0x57ffb0, 0.8);
+    captionFrame.strokeRoundedRect(captionX + 2, captionY + 2, captionWidth - 4, captionHeight - 4, 6);
+    captionFrame.lineStyle(1, 0xf8e6a0, 0.64);
+    captionFrame.strokeRoundedRect(captionX + 8, captionY + 8, captionWidth - 16, captionHeight - 16, 5);
+    captionFrame.lineStyle(1, 0x7df7ff, 0.42);
+    captionFrame.lineBetween(captionX + 18, captionY + captionHeight - 10, captionX + captionWidth - 18, captionY + captionHeight - 10);
+
+    const caption = this.add.text(
+      captionX + captionWidth / 2,
+      captionY + captionHeight / 2,
+      "O sistema agora consome energia.",
+      {
+        fontFamily: "Georgia",
+        fontSize: "34px",
+        fontStyle: "bold",
+        color: "#ffffff",
+        stroke: "#03120f",
+        strokeThickness: 6,
+        align: "center"
+      }
+    ).setOrigin(0.5).setDepth(23).setScrollFactor(0).setAlpha(0);
+    caption.setShadow(0, 0, "#7df7ff", 14, true, true);
+
+    this.energyPanelIntroObjects.push(overlay, glow, captionFrame, caption);
+
+    const introScale = 1.55;
+    this.energyPanelContainer.setAlpha(0);
+    this.energyPanelContainer.setPosition(
+      panelX - (ENERGY_PANEL_WIDTH * (introScale - 1)) / 2,
+      panelY - (ENERGY_PANEL_HEIGHT * (introScale - 1)) / 2
+    );
+    this.energyPanelContainer.setScale(introScale);
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.16,
+      duration: 220,
+      yoyo: true,
+      hold: 1900,
+      ease: "Sine.Out",
+      onComplete: () => {
+        overlay.destroy();
+        this.energyPanelIntroObjects = this.energyPanelIntroObjects.filter((object) => object !== overlay);
+      }
+    });
+    this.tweens.add({
+      targets: glow,
+      alpha: { from: 0, to: 0.32 },
+      scaleX: { from: 0.86, to: 1.12 },
+      scaleY: { from: 0.86, to: 1.12 },
+      duration: 720,
+      yoyo: true,
+      repeat: 1,
+      ease: "Sine.InOut",
+      onComplete: () => {
+        glow.destroy();
+        this.energyPanelIntroObjects = this.energyPanelIntroObjects.filter((object) => object !== glow);
+      }
+    });
+    this.tweens.add({
+      targets: this.energyPanelContainer,
+      alpha: 1,
+      duration: 180,
+      ease: "Sine.Out"
+    });
+    this.tweens.add({
+      targets: this.energyPanelContainer,
+      x: panelX,
+      y: panelY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 880,
+      delay: 620,
+      ease: "Expo.Out"
+    });
+    this.tweens.add({
+      targets: this.energyPercentText,
+      scaleX: 1.28,
+      scaleY: 1.28,
+      duration: 260,
+      yoyo: true,
+      repeat: 3,
+      ease: "Sine.InOut"
+    });
+    this.tweens.add({
+      targets: [captionFrame, caption],
+      alpha: 1,
+      y: "-=6",
+      duration: 420,
+      delay: 340,
+      ease: "Sine.Out"
+    });
+    this.tweens.add({
+      targets: [captionFrame, caption],
+      alpha: 0,
+      y: "-=8",
+      duration: 520,
+      delay: 3300,
+      ease: "Sine.In",
+      onComplete: () => this.clearEnergyPanelIntro()
+    });
+  }
+
+  private clearEnergyPanelIntro(): void {
+    this.energyPanelIntroObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
+    this.energyPanelIntroObjects = [];
+  }
+
   private createRightPanel(): void {
     this.panelContainer = this.createRobotPanel();
     this.panelContainer.setScrollFactor(0).setDepth(10);
@@ -2552,6 +2764,7 @@ export class CascataScene extends Phaser.Scene {
     const text = valid && previewValue !== undefined ? `-> ${previewValue}` : "invalido";
     const color = valid ? "#b8fbff" : "#ffb4a8";
     const shadow = valid ? "#62e8ff" : "#ff3030";
+    const shouldShowText = valid || this.currentSubLevel === 8;
 
     if (!this.predictionPreviewText) {
       this.predictionPreviewText = this.add.text(0, 0, text, {
@@ -2571,7 +2784,7 @@ export class CascataScene extends Phaser.Scene {
       .setText(text)
       .setColor(color)
       .setAlpha(1)
-      .setVisible(true);
+      .setVisible(shouldShowText);
     this.predictionPreviewText.setShadow(0, 0, shadow, valid ? 14 : 10, true, true);
     this.drawGoalPanel(slotView.plaque, valid ? 0x7dd3fc : 0xff5c5c, valid ? 0x38d5ff : 0xff3030, valid);
     slotView.labelText.setShadow(0, 0, shadow, valid ? 12 : 8, true, true);
@@ -3485,6 +3698,15 @@ export class CascataScene extends Phaser.Scene {
     this.playAudioPlaceholder(AUDIO_CASCADE_RESTORED_KEY);
     this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
 
+    const returnToWorldMapOnce = () => {
+      if (!this.isFinalCompletionPopupOpen) {
+        return;
+      }
+
+      this.closeFinalCompletionPopup();
+      this.returnToWorldMap();
+    };
+
     const overlay = this.add
       .rectangle(0, 0, this.scale.width, this.scale.height, 0x03100f, 0.5)
       .setOrigin(0, 0)
@@ -3566,10 +3788,7 @@ export class CascataScene extends Phaser.Scene {
     const coreGlow = this.add.circle(74, panelHeight / 2, 34, 0x7df7ff, 0.12);
     coreGlow.setBlendMode(Phaser.BlendModes.ADD);
 
-    const button = this.createFinalCompletionButton(panelWidth / 2, panelHeight - 54, "Retornar ao Mundo", () => {
-      this.closeFinalCompletionPopup();
-      this.scheduleReturnToWorldMap(0, true);
-    });
+    const button = this.createFinalCompletionButton(panelWidth / 2, panelHeight - 54, "Retornar ao Mundo", returnToWorldMapOnce);
 
     const popup = this.add.container(panelX, panelY + 22, [panel, coreGlow, core, title, body, button])
       .setDepth(100)
@@ -3577,8 +3796,18 @@ export class CascataScene extends Phaser.Scene {
       .setAlpha(0)
       .setScale(0.96);
 
-    this.finalCompletionPopupObjects.push(overlay, halo, popup);
+    const buttonHitZone = this.add
+      .zone(panelX + panelWidth / 2, panelY + panelHeight - 54, 292, 76)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    buttonHitZone.on("pointerover", () => button.setScale(1.04));
+    buttonHitZone.on("pointerout", () => button.setScale(1));
+    buttonHitZone.on("pointerup", returnToWorldMapOnce);
+
+    this.finalCompletionPopupObjects.push(overlay, halo, popup, buttonHitZone);
     this.createFinalCompletionPopupParticles(panelX, panelY, panelWidth, panelHeight);
+    this.finalCompletionPopupEvents.push(this.time.delayedCall(9000, returnToWorldMapOnce));
 
     this.tweens.add({
       targets: popup,
@@ -3640,19 +3869,43 @@ export class CascataScene extends Phaser.Scene {
     }).setOrigin(0.5);
     label.setShadow(0, 0, "#57ffb0", 8, true, true);
 
-    const zone = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
-    zone.on("pointerover", () => {
+    const button = this.add.container(x, y, [background, label]);
+    button.setSize(width, height);
+    button.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true
+    });
+
+    let wasClicked = false;
+    button.on("pointerover", () => {
+      if (wasClicked) {
+        return;
+      }
       drawButton(true);
       label.setColor("#ffffff");
       this.playAudioPlaceholder(AUDIO_ENERGY_CLICK_KEY);
     });
-    zone.on("pointerout", () => {
+    button.on("pointerout", () => {
+      if (wasClicked) {
+        return;
+      }
       drawButton(false);
       label.setColor("#fff5d8");
     });
-    zone.on("pointerdown", onClick);
+    button.on("pointerdown", () => {
+      if (wasClicked) {
+        return;
+      }
 
-    return this.add.container(x, y, [background, label, zone]);
+      wasClicked = true;
+      button.disableInteractive();
+      drawButton(true);
+      label.setColor("#ffffff");
+      onClick();
+    });
+
+    return button;
   }
 
   private createFinalCompletionPopupParticles(panelX: number, panelY: number, panelWidth: number, panelHeight: number): void {
@@ -6968,7 +7221,12 @@ export class CascataScene extends Phaser.Scene {
     this.playfieldBounds = this.computePlayfieldBounds(width, height);
     this.layoutFullscreenBackground();
     this.topHudContainer.setPosition(SIDE_PADDING, TOP_PADDING);
-    this.missionPanelContainer?.setPosition(SIDE_PADDING, TOP_PADDING + 94);
+    if (!this.isMissionPanelIntroActive) {
+      this.missionPanelContainer?.setPosition(SIDE_PADDING, TOP_PADDING + 94);
+      this.missionPanelContainer?.setScale(1);
+      this.missionPanelContainer?.setAlpha(1);
+      this.missionPanelContainer?.setDepth(19);
+    }
     this.updateAuxiliaryTextVisibility();
 
     this.redrawRobotPanel();
@@ -7286,36 +7544,16 @@ export class CascataScene extends Phaser.Scene {
     }, delayMs);
   }
 
-  private scheduleReturnToWorldMap(delayMs: number, force = false): void {
-    if (this.autoReturnScheduled && !force) {
-      return;
-    }
-
+  private returnToWorldMap(): void {
     if (this.autoReturnTimeoutId) {
       window.clearTimeout(this.autoReturnTimeoutId);
       this.autoReturnTimeoutId = undefined;
     }
 
-    this.autoReturnScheduled = true;
-    this.nextButton?.setVisible(false).disableInteractive();
-    this.homeButton?.disableInteractive();
-
-    const goToWorldMap = () => {
-      if (!this.autoReturnScheduled) {
-        return;
-      }
-
-      this.autoReturnScheduled = false;
-      this.cameras.main.resetFX();
-      this.stopCascadeAudioSystem();
-      this.scene.start("WorldMapScene", { fromCascataComplete: true });
-    };
-
-    this.time.delayedCall(delayMs, goToWorldMap);
-    this.autoReturnTimeoutId = window.setTimeout(() => {
-      this.autoReturnTimeoutId = undefined;
-      goToWorldMap();
-    }, delayMs + 500);
+    this.autoReturnScheduled = false;
+    this.cameras.main.resetFX();
+    this.stopCascadeAudioSystem();
+    this.scene.start("WorldMapScene", { fromCascataComplete: true });
   }
 
 }

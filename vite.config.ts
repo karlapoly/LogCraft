@@ -75,20 +75,24 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    ViteImageOptimizer({
-      png: {
-        quality: 80,
-      },
-      jpeg: {
-        quality: 75,
-      },
-      webp: {
-        lossless: true,
-      },
-      avif: {
-        lossless: true,
-      },
-    }),
+    ...(process.env.CI
+      ? [
+          ViteImageOptimizer({
+            png: {
+              quality: 80,
+            },
+            jpeg: {
+              quality: 75,
+            },
+            webp: {
+              lossless: true,
+            },
+            avif: {
+              lossless: true,
+            },
+          }),
+        ]
+      : []),
     copyAudioAssets(),
   ],
 });
