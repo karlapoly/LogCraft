@@ -310,20 +310,22 @@ const AUDIO_AUTOMATION_EXECUTE_KEY = "audio-automation-execute";
 const AUDIO_CORRUPTION_DESTROYED_KEY = "audio-corruption-destroyed";
 const AUDIO_CASCADE_RESTORED_KEY = "audio-cascade-restored";
 const AUDIO_FINAL_VICTORY_KEY = "audio-final-victory";
+const AUDIO_TARGET_COMPLETE_KEY = "audio-target-complete";
+const AUDIO_GLOBAL_CLICK_KEY = "audio-global-click";
 const AUDIO_ASSET_PATHS: Record<string, string> = {
-  [AUDIO_MUSIC_BASE_KEY]: "assets/audio/music/ambient_base.wav",
+  [AUDIO_MUSIC_BASE_KEY]: "assets/audio/Planetarium.ogg",
   [AUDIO_MUSIC_GLITCH_KEY]: "assets/audio/music/corrupcao.wav",
   [AUDIO_MUSIC_TECH_KEY]: "assets/audio/music/tecnologia.wav",
   [AUDIO_MUSIC_ENERGY_KEY]: "assets/audio/music/energia.wav",
   [AUDIO_MUSIC_COMPUTATION_KEY]: "assets/audio/music/fluxo_computacional.wav",
   [AUDIO_MUSIC_CRYSTAL_KEY]: "assets/audio/music/cristal.wav",
-  [AUDIO_MUSIC_CORRUPTION_KEY]: "assets/audio/music/nucleo_buggie.wav",
+  [AUDIO_MUSIC_CORRUPTION_KEY]: "assets/audio/virus.ogg",
   [AUDIO_MUSIC_FINAL_KEY]: "assets/audio/music/fase_final.wav",
   [AUDIO_MUSIC_RESTORED_KEY]: "assets/audio/music/restauracao_final.wav",
   [AUDIO_CLICK_MODULE_KEY]: "assets/audio/sfx/click.wav",
   [AUDIO_SUCCESS_SYNC_KEY]: "assets/audio/sfx/success.wav",
   [AUDIO_ERROR_LIMIT_KEY]: "assets/audio/sfx/failure.wav",
-  [AUDIO_PHASE_COMPLETE_KEY]: "assets/audio/sfx/phase_complete.wav",
+  [AUDIO_PHASE_COMPLETE_KEY]: "assets/audio/Acerto.mp3",
   [AUDIO_ENERGY_CLICK_KEY]: "assets/audio/sfx/energy.wav",
   [AUDIO_OVERLOAD_WARNING_KEY]: "assets/audio/sfx/failure.wav",
   [AUDIO_SEQUENCE_SUCCESS_KEY]: "assets/audio/sfx/success.wav",
@@ -343,8 +345,11 @@ const AUDIO_ASSET_PATHS: Record<string, string> = {
   [AUDIO_AUTOMATION_EXECUTE_KEY]: "assets/audio/sfx/sequence_execute.wav",
   [AUDIO_CORRUPTION_DESTROYED_KEY]: "assets/audio/sfx/glitch.wav",
   [AUDIO_CASCADE_RESTORED_KEY]: "assets/audio/sfx/restore.wav",
-  [AUDIO_FINAL_VICTORY_KEY]: "assets/audio/sfx/phase_complete.wav"
+  [AUDIO_FINAL_VICTORY_KEY]: "assets/audio/sfx/phase_complete.wav",
+  [AUDIO_TARGET_COMPLETE_KEY]: "assets/audio/Laser.mp3",
+  [AUDIO_GLOBAL_CLICK_KEY]: "assets/audio/Clique.mp3"
 };
+const TARGET_COMPLETE_AUDIO_DURATION_MS = 720;
 const CASCATA_MUSIC_KEYS = [
   AUDIO_MUSIC_BASE_KEY,
   AUDIO_MUSIC_GLITCH_KEY,
@@ -357,14 +362,14 @@ const CASCATA_MUSIC_KEYS = [
   AUDIO_MUSIC_RESTORED_KEY
 ] as const;
 const CASCATA_PHASE_MIXES: Record<number, Partial<Record<string, number>>> = {
-  1: { [AUDIO_MUSIC_BASE_KEY]: 0.2 },
-  2: { [AUDIO_MUSIC_BASE_KEY]: 0.18, [AUDIO_MUSIC_GLITCH_KEY]: 0.03 },
-  3: { [AUDIO_MUSIC_BASE_KEY]: 0.17, [AUDIO_MUSIC_GLITCH_KEY]: 0.03, [AUDIO_MUSIC_TECH_KEY]: 0.08 },
-  4: { [AUDIO_MUSIC_BASE_KEY]: 0.15, [AUDIO_MUSIC_TECH_KEY]: 0.08, [AUDIO_MUSIC_ENERGY_KEY]: 0.09 },
-  5: { [AUDIO_MUSIC_BASE_KEY]: 0.14, [AUDIO_MUSIC_TECH_KEY]: 0.07, [AUDIO_MUSIC_COMPUTATION_KEY]: 0.1 },
-  6: { [AUDIO_MUSIC_BASE_KEY]: 0.14, [AUDIO_MUSIC_CRYSTAL_KEY]: 0.12, [AUDIO_MUSIC_TECH_KEY]: 0.05 },
-  7: { [AUDIO_MUSIC_BASE_KEY]: 0.1, [AUDIO_MUSIC_CORRUPTION_KEY]: 0.12, [AUDIO_MUSIC_GLITCH_KEY]: 0.06 },
-  8: { [AUDIO_MUSIC_BASE_KEY]: 0.08, [AUDIO_MUSIC_FINAL_KEY]: 0.14, [AUDIO_MUSIC_CORRUPTION_KEY]: 0.06, [AUDIO_MUSIC_CRYSTAL_KEY]: 0.06 }
+  1: { [AUDIO_MUSIC_BASE_KEY]: 0.09 },
+  2: { [AUDIO_MUSIC_BASE_KEY]: 0.08, [AUDIO_MUSIC_GLITCH_KEY]: 0.015 },
+  3: { [AUDIO_MUSIC_BASE_KEY]: 0.08, [AUDIO_MUSIC_GLITCH_KEY]: 0.015, [AUDIO_MUSIC_TECH_KEY]: 0.035 },
+  4: { [AUDIO_MUSIC_BASE_KEY]: 0.07, [AUDIO_MUSIC_TECH_KEY]: 0.035, [AUDIO_MUSIC_ENERGY_KEY]: 0.04 },
+  5: { [AUDIO_MUSIC_BASE_KEY]: 0.065, [AUDIO_MUSIC_TECH_KEY]: 0.03, [AUDIO_MUSIC_COMPUTATION_KEY]: 0.045 },
+  6: { [AUDIO_MUSIC_BASE_KEY]: 0.065, [AUDIO_MUSIC_CRYSTAL_KEY]: 0.055, [AUDIO_MUSIC_TECH_KEY]: 0.025 },
+  7: { [AUDIO_MUSIC_BASE_KEY]: 0.045, [AUDIO_MUSIC_CORRUPTION_KEY]: 0.055, [AUDIO_MUSIC_GLITCH_KEY]: 0.025 },
+  8: { [AUDIO_MUSIC_BASE_KEY]: 0.04, [AUDIO_MUSIC_FINAL_KEY]: 0.065, [AUDIO_MUSIC_CORRUPTION_KEY]: 0.025, [AUDIO_MUSIC_CRYSTAL_KEY]: 0.025 }
 };
 
 const PHASE_ELEMENT_CONFIGS: PhaseElementConfig[] = [
@@ -739,6 +744,7 @@ export class CascataScene extends Phaser.Scene {
   private currentMoves = 0;
   private maxMoves?: number;
   private phaseFailed = false;
+  private phaseWinHandled = false;
   private stabilizingMovePlayed = false;
   private computationalFlowStepIndex = 0;
   private playfieldBounds = new Phaser.Geom.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
@@ -893,6 +899,7 @@ export class CascataScene extends Phaser.Scene {
     this.currentMoves = 0;
     this.maxMoves = config.maxMoves;
     this.phaseFailed = false;
+    this.phaseWinHandled = false;
     this.closeDebugPopup();
     this.stabilizingMovePlayed = false;
     this.computationalFlowStepIndex = 0;
@@ -1535,7 +1542,7 @@ export class CascataScene extends Phaser.Scene {
 
     const highlightTexts: Phaser.GameObjects.Text[] = [];
     if (isBuilderIntro) {
-      const hopeText = this.add.text(centerX, panelY + 314, "Mas ainda existe esperança.", {
+      const hopeText = this.add.text(centerX, panelY + 314, "Agora, os ecossistemas digitais precisam ser restaurados.", {
         fontFamily: "Georgia",
         fontSize: "29px",
         fontStyle: "bold",
@@ -1549,7 +1556,7 @@ export class CascataScene extends Phaser.Scene {
       const restoreText = this.add.text(
         centerX,
         panelY + 362,
-        "Cada conexão restaurada devolve vida ao mundo.\nCom lógica e energia, podemos reconstruir os ecossistemas digitais.",
+        "Use os robôs assistentes para recuperar as conexões\ne devolver energia ao sistema.",
         {
           fontFamily: "Georgia",
           fontSize: "24px",
@@ -1562,18 +1569,7 @@ export class CascataScene extends Phaser.Scene {
       restoreText.setOrigin(0.5, 0).setDepth(85).setScrollFactor(0).setAlpha(0);
       restoreText.setStroke("#ffffff", 3);
 
-      const buildText = this.add.text(centerX, panelY + 456, "Somar é o primeiro passo para construir.", {
-        fontFamily: "Georgia",
-        fontSize: "28px",
-        fontStyle: "bold",
-        color: "#775115",
-        align: "center",
-        wordWrap: { width: textWidth }
-      });
-      buildText.setOrigin(0.5, 0).setDepth(85).setScrollFactor(0).setAlpha(0);
-      buildText.setStroke("#ffffff", 3);
-
-      highlightTexts.push(hopeText, restoreText, buildText);
+      highlightTexts.push(hopeText, restoreText);
     }
 
     const moduleText = this.add.text(centerX, panelY + panelHeight - (isBuilderIntro ? 58 : 54), config.moduleText, {
@@ -2574,6 +2570,14 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private installInputEvents(): void {
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (currentlyOver.some((gameObject) => gameObject.getData("panelButton"))) {
+        return;
+      }
+
+      this.playCascadeSfx(AUDIO_GLOBAL_CLICK_KEY, 0.32);
+    });
+
     this.input.on(
       Phaser.Input.Events.GAMEOBJECT_OVER,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
@@ -3064,7 +3068,14 @@ export class CascataScene extends Phaser.Scene {
       return;
     }
 
-    this.playAudioPlaceholder(this.currentSubLevel >= 3 ? AUDIO_PHASE_COMPLETE_KEY : AUDIO_SUCCESS_SYNC_KEY);
+    if (this.phaseWinHandled) {
+      return;
+    }
+
+    this.phaseWinHandled = true;
+    this.time.delayedCall(TARGET_COMPLETE_AUDIO_DURATION_MS, () => {
+      this.playAudioPlaceholder(AUDIO_PHASE_COMPLETE_KEY);
+    });
     this.resultText?.setColor("#bbf7d0");
     this.resultText?.setText(
       this.currentSubLevel < 8
@@ -5704,14 +5715,14 @@ export class CascataScene extends Phaser.Scene {
   private resolveCascadeAudioFinale(): void {
     this.cascadeMusicLayers.forEach((layer) => this.fadeSoundTo(layer, 0, 650));
     this.time.delayedCall(850, () => {
-      const restoredLayer = this.cascadeMusicLayers.get(AUDIO_MUSIC_RESTORED_KEY);
-      if (!restoredLayer || !this.cache.audio.exists(AUDIO_MUSIC_RESTORED_KEY)) {
+      const baseLayer = this.cascadeMusicLayers.get(AUDIO_MUSIC_BASE_KEY);
+      if (!baseLayer || !this.cache.audio.exists(AUDIO_MUSIC_BASE_KEY)) {
         return;
       }
-      if (!restoredLayer.isPlaying && !this.sound.locked) {
-        restoredLayer.play();
+      if (!baseLayer.isPlaying && !this.sound.locked) {
+        baseLayer.play();
       }
-      this.fadeSoundTo(restoredLayer, 0.42, 1800);
+      this.fadeSoundTo(baseLayer, 0.09, 1800);
       this.playCascadeSfx(AUDIO_CASCADE_RESTORED_KEY, 0.36);
     });
   }
@@ -6869,6 +6880,7 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.restoredTopics.add(output);
+    this.playCascadeSfx(AUDIO_TARGET_COMPLETE_KEY, 0.5);
     this.activateComputationalFlowForOutput(output);
     this.activateEnergySync(output);
 

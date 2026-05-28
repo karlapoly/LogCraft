@@ -43,6 +43,8 @@ export class PreloadScene extends Phaser.Scene {
 
     // Asset do Mapa Mundial
     this.load.image("world-map-background", "assets/images/Fundo/Camada1_Mundo.png");
+
+    this.load.audio("intro-ambient-discovery", "assets/audio/Planetarium.ogg");
   }
 
   create() {

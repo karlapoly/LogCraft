@@ -21,13 +21,10 @@ export const ROBOT_INTRO_CONFIGS: Record<number, RobotIntroConfig> = {
     accentColor: 0x7df7ff,
     specialOpening: [
       "O Buggie corrompeu os fluxos da Cascata de Dados.",
-      "Mas ainda existe esperança.",
-      "Cada conexão restaurada devolve vida ao mundo.",
-      "Com lógica e energia, podemos reconstruir os ecossistemas digitais."
+      "Agora, os ecossistemas digitais precisam ser restaurados.",
+      "Use os robôs assistentes para recuperar as conexões e devolver energia ao sistema."
     ],
-    lines: [
-      "Somar é o primeiro passo para construir."
-    ]
+    lines: []
   },
   2: {
     id: "subtraction-analyst",
