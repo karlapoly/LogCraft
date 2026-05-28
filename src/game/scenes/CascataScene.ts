@@ -1835,7 +1835,7 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private shouldAlwaysShowRobotIntroductions(): boolean {
-    return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    return ["localhost", "127.0.0.1", "karlapoly.github.io"].includes(window.location.hostname);
   }
 
   private createEnergyPanel(): void {
