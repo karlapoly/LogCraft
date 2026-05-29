@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { createAudioMuteButton, getStoredAudioMuted } from "../ui/audioMuteButton";
 
 type IntroMoment = {
   text: string;
@@ -175,6 +176,13 @@ export class IntroScene extends Phaser.Scene {
     this.createGlintTexture();
     this.createWorldBackdrop();
     this.startIntroSoundscape();
+    createAudioMuteButton(this, {
+      onToggle: (muted) => {
+        if (this.introAmbientAudio) {
+          this.introAmbientAudio.muted = muted;
+        }
+      }
+    });
     this.createIntroSequence();
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
@@ -262,6 +270,7 @@ export class IntroScene extends Phaser.Scene {
     this.introAmbientAudio = new Audio(INTRO_AMBIENT_AUDIO_PATH);
     this.introAmbientAudio.loop = true;
     this.introAmbientAudio.volume = 0;
+    this.introAmbientAudio.muted = getStoredAudioMuted(this);
     this.introAmbientAudio.preload = "auto";
 
     const startAudio = () => {

@@ -4,6 +4,7 @@ import type { LevelConfig, WaterSlotConfig } from "../../levels/types";
 import { FlowEngine, type TipoDeOperacao } from "../../logic/FlowEngine";
 import { biomaStoreApi, type MetaDeBioma, type BiomaState } from "../../state/biomaStore";
 import { EstadoDoBioma } from "../../state/EstadoDoBioma";
+import { createAudioMuteButton } from "../ui/audioMuteButton";
 
 type GameSceneData = {
   levelId?: string;
@@ -149,6 +150,7 @@ export class GameScene extends Phaser.Scene {
     this.createSlotZones();
     this.createRightPanel();
     this.createFooterMessage();
+    createAudioMuteButton(this);
     this.installInputEvents();
     this.installStoreSync();
     this.installResetShortcut();

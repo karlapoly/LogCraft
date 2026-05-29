@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { biomaStoreApi } from "../../state/biomaStore";
+import { createAudioMuteButton } from "../ui/audioMuteButton";
 
 type WorldBiomeNode = {
   id: string;
@@ -37,9 +38,14 @@ const VULCAO_WORLD_KEY = "world-node-vulcao";
 const VULCAO_WORLD_PATH = "assets/images/Mundos/Vulcao.png";
 const VULCAO_WORLD_DEAD_KEY = "world-node-vulcao-dead";
 const VULCAO_WORLD_DEAD_PATH = "assets/images/Mundos/VulcaoMorto.png";
+const PLAN_BUTTON_KEY = "ui-btn-plan";
+const PLAN_BUTTON_PATH = "assets/images/Botoes/Plano.png";
+const PLAN_LINK_URL = "https://docs.google.com/document/d/1PMSjhFNdl73wTQ2FWZZvN8ciy42dGVlMc6kcX7J5QJk/edit?usp=sharing";
 const UI_DEPTH = 1000;
 const HEALTH_RING_RADIUS = 52;
 const HEALTH_RING_THICKNESS = 14;
+const UI_BUTTON_SIZE = 83;
+const UI_BUTTON_MARGIN = 22;
 const MIN_ZOOM_MARGIN = 1.06;
 const MAX_ZOOM = 1.8;
 
@@ -112,6 +118,7 @@ export class WorldMapScene extends Phaser.Scene {
   private healthText?: Phaser.GameObjects.Text;
   private healthBackground?: Phaser.GameObjects.Graphics;
   private titleContainer?: Phaser.GameObjects.Container;
+  private planButton?: Phaser.GameObjects.Image;
   private isDraggingMap = false;
   private dragStartPointer = new Phaser.Math.Vector2();
   private dragStartScroll = new Phaser.Math.Vector2();
@@ -167,6 +174,10 @@ export class WorldMapScene extends Phaser.Scene {
     if (!this.textures.exists(VULCAO_WORLD_DEAD_KEY)) {
       this.load.image(VULCAO_WORLD_DEAD_KEY, VULCAO_WORLD_DEAD_PATH);
     }
+
+    if (!this.textures.exists(PLAN_BUTTON_KEY)) {
+      this.load.image(PLAN_BUTTON_KEY, PLAN_BUTTON_PATH);
+    }
   }
 
   public create(): void {
@@ -181,6 +192,8 @@ export class WorldMapScene extends Phaser.Scene {
 
     this.createTopHud();
     this.createGlobalHealthBar();
+    this.createPlanButton();
+    this.uiObjects.push(createAudioMuteButton(this));
     this.bindCameraLayers();
 
     this.layoutUi();
@@ -245,6 +258,30 @@ export class WorldMapScene extends Phaser.Scene {
     this.titleContainer = this.add.container(40, 40, [tituloLog, tituloCraft, subtitulo]);
     this.titleContainer.setDepth(UI_DEPTH);
     this.uiObjects.push(this.titleContainer);
+  }
+
+  private createPlanButton(): void {
+    this.planButton = this.add
+      .image(0, 0, PLAN_BUTTON_KEY)
+      .setDisplaySize(UI_BUTTON_SIZE, UI_BUTTON_SIZE)
+      .setDepth(UI_DEPTH)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+
+    const baseScaleX = this.planButton.scaleX;
+    const baseScaleY = this.planButton.scaleY;
+
+    this.planButton.on("pointerover", () => {
+      this.planButton?.setScale(baseScaleX * 1.06, baseScaleY * 1.06);
+    });
+    this.planButton.on("pointerout", () => {
+      this.planButton?.setScale(baseScaleX, baseScaleY);
+    });
+    this.planButton.on("pointerup", () => {
+      window.open(PLAN_LINK_URL, "_blank", "noopener,noreferrer");
+    });
+
+    this.uiObjects.push(this.planButton);
   }
 
   private createGlobalHealthBar(): void {
@@ -450,6 +487,10 @@ export class WorldMapScene extends Phaser.Scene {
     }
 
     this.titleContainer?.setPosition(40, 40);
+    this.planButton?.setPosition(
+      UI_BUTTON_MARGIN + UI_BUTTON_SIZE / 2,
+      this.scale.height - UI_BUTTON_MARGIN - UI_BUTTON_SIZE / 2
+    );
     this.redrawGlobalHealth(biomaStoreApi.getState().saudeGlobalDoEcossistema);
 
   }

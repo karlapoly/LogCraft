@@ -40,6 +40,10 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("ui-btn-back", "assets/images/Botoes/Back.png");
     this.load.image("ui-btn-next", "assets/images/Botoes/Next.png");
     this.load.image("ui-btn-home", "assets/images/Botoes/Home.png");
+    this.load.image("ui-btn-sound", "assets/images/Botoes/Som.png");
+    this.load.image("ui-btn-muted", "assets/images/Botoes/Mudo.png");
+    this.load.image("ui-btn-info", "assets/images/Botoes/Informacoes 01.png");
+    this.load.image("ui-btn-plan", "assets/images/Botoes/Plano.png");
 
     // Asset do Mapa Mundial
     this.load.image("world-map-background", "assets/images/Fundo/Camada1_Mundo.png");
