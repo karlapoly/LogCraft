@@ -180,8 +180,12 @@ const ROBOT_INTRO_STORAGE_KEY = "logcraft-cascata-robot-intros-v3";
 const ROBOT_INTRO_PARTICLE_KEY = "cascata-robot-intro-particle";
 const HEALTH_RING_RADIUS = 52;
 const HEALTH_RING_THICKNESS = 14;
-const CASCATA_OVERLAY_DEPTH = -16;
-const CASCATA_FASE_04_OVERLAY_DEPTH = -16;
+const CASCATA_OVERLAY_DEPTH = -18;
+const CASCATA_FASE_04_OVERLAY_DEPTH = -18;
+const WATER_FLOW_DEPTH = -17;
+const ROBOT_PANEL_DEPTH = 62;
+const FASE_03_ARVORES_DEPTH = -1;
+const GLOBAL_NAV_BUTTON_DEPTH = 120;
 const FASE_06_CRISTAL_DEPTH = 6;
 const PLAYFIELD_TOP_OFFSET = 108;
 const PLAYFIELD_SIDE_MARGIN = 32;
@@ -424,7 +428,7 @@ const RESTORE_SUPPORT_CONFIGS: Record<string, PhaseElementConfig[]> = {
       path: AGUA_SOLO_PATH,
       x: 0,
       y: 0,
-      depth: -16
+      depth: WATER_FLOW_DEPTH
     }
   ],
   Arvores: [
@@ -434,7 +438,7 @@ const RESTORE_SUPPORT_CONFIGS: Record<string, PhaseElementConfig[]> = {
       path: AGUA_SOLO_PATH,
       x: 0,
       y: 0,
-      depth: -16
+      depth: WATER_FLOW_DEPTH
     }
   ]
 };
@@ -709,6 +713,8 @@ export class CascataScene extends Phaser.Scene {
   private nextButton?: Phaser.GameObjects.Image;
   private homeButton?: Phaser.GameObjects.Image;
   private infoButton?: Phaser.GameObjects.Image;
+  private uiCamera?: Phaser.Cameras.Scene2D.Camera;
+  private readonly uiCameraObjects = new Set<Phaser.GameObjects.GameObject>();
   private ecosystemHealthFill?: Phaser.GameObjects.Graphics;
   private ecosystemHealthBackground?: Phaser.GameObjects.Graphics;
   private ecosystemHealthText?: Phaser.GameObjects.Text;
@@ -756,8 +762,9 @@ export class CascataScene extends Phaser.Scene {
   private slotLayoutBaseHeight = BASE_HEIGHT;
   private completionRecorded = false;
   private autoReturnScheduled = false;
-  private autoReturnTimeoutId?: number;
+  private autoReturnTimeoutId?: Phaser.Time.TimerEvent;
   private isReturningToWorldMap = false;
+  private isSceneShuttingDown = false;
   private biomeIdInStore = "level-01";
   private isRobotIntroActive = false;
   private robotIntroObjects: Phaser.GameObjects.GameObject[] = [];
@@ -770,6 +777,7 @@ export class CascataScene extends Phaser.Scene {
   private isPhase6To7NarrativeOpen = false;
   private finalCompletionPopupObjects: Phaser.GameObjects.GameObject[] = [];
   private finalCompletionPopupEvents: Phaser.Time.TimerEvent[] = [];
+  private finalCompletionReturnTimeoutId?: Phaser.Time.TimerEvent;
   private isFinalCompletionPopupOpen = false;
   private howToPlayPopupObjects: Phaser.GameObjects.GameObject[] = [];
   private isHowToPlayPopupOpen = false;
@@ -787,6 +795,12 @@ export class CascataScene extends Phaser.Scene {
 
   public constructor() {
     super("CascataScene");
+    void this.showFinalCompletionPopup;
+    void this.stabilizePhase8FinalVisuals;
+    void this.applyPhase8RestoredCrystalWaterFlow;
+    void this.resolveCascadeAudioFinale;
+    void this.playFinalRestorationFeedback;
+    void this.playUltimateRestorationFeedback;
   }
 
   public init(data: CascataSceneData): void {
@@ -858,6 +872,10 @@ export class CascataScene extends Phaser.Scene {
   }
 
   public create(): void {
+    this.isSceneShuttingDown = false;
+    this.input.enabled = true;
+    this.uiCamera = undefined;
+    this.uiCameraObjects.clear();
     this.createRobotIntroParticleTexture();
     this.createFullscreenBackground();
     this.createPhaseElements();
@@ -870,20 +888,28 @@ export class CascataScene extends Phaser.Scene {
     this.createNextButton();
     this.createHomeButton();
     this.createInfoButton();
-    createAudioMuteButton(this);
+    this.registerUiCameraObject(createAudioMuteButton(this));
+    this.setupUiCamera();
     this.installInputEvents();
     this.installStoreSync();
     this.startCascadeAudioSystem();
     this.setupLevel(this.currentSubLevel);
     this.layoutScene(this.scale.width, this.scale.height);
+    this.syncUiCameraLayers();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       if (this.autoReturnTimeoutId) {
-        window.clearTimeout(this.autoReturnTimeoutId);
+        this.autoReturnTimeoutId.remove(false);
         this.autoReturnTimeoutId = undefined;
       }
-      this.clearRobotIntroduction();
+      if (this.finalCompletionReturnTimeoutId) {
+        this.finalCompletionReturnTimeoutId.remove(false);
+        this.finalCompletionReturnTimeoutId = undefined;
+      }
+      this.isSceneShuttingDown = true;
+      this.removeCascataInputEvents();
+      this.clearRobotIntroduction(true);
       this.closeHowToPlayPopup();
       this.closePhase6To7NarrativePopup();
       this.closeFinalCompletionPopup();
@@ -895,8 +921,13 @@ export class CascataScene extends Phaser.Scene {
         this.predictionPreviewText = undefined;
       }
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+      this.uiCamera = undefined;
+      this.uiCameraObjects.clear();
       this.unsubscribeStore?.();
       this.stopCascadeAudioSystem();
+      // NOTE: Do not call this.time.removeAllEvents() here - it can interfere with
+      // Phaser's internal scene transition mechanisms. Scheduled navigation is already
+      // cleared via clearScheduledNavigation() and clearRobotIntroduction().
     });
   }
 
@@ -946,7 +977,7 @@ export class CascataScene extends Phaser.Scene {
     this.updateMissionPanel();
     this.nextButton?.setVisible(false).disableInteractive();
     this.nextButton?.setAlpha(0);
-    this.homeButton?.setInteractive({ useHandCursor: true });
+    this.enableHomeButton();
 
     this.createSlotZones();
     config.robotButtons.forEach((button) => {
@@ -1220,6 +1251,7 @@ export class CascataScene extends Phaser.Scene {
       .setDepth(depth)
       .setOrigin(0, 0)
       .setAlpha(initialAlpha);
+    this.registerWorldCameraObject(image);
     image.setAngle(config.angle ?? 0);
     this.phaseBackgroundLayers.push(image);
 
@@ -1367,6 +1399,7 @@ export class CascataScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setDepth(this.getCascataOverlayDepth(textureKey))
       .setAlpha(0);
+    this.registerWorldCameraObject(overlay);
     this.cascataOverlay = overlay;
     this.phaseBackgroundLayers.push(overlay);
 
@@ -1515,9 +1548,9 @@ export class CascataScene extends Phaser.Scene {
 
     const readabilityPanel = this.add.graphics();
     readabilityPanel.setDepth(83).setScrollFactor(0).setAlpha(0);
-    readabilityPanel.fillStyle(0xf8fbff, 0.78);
+    readabilityPanel.fillStyle(0xf8fbff, 1);
     readabilityPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 26);
-    readabilityPanel.lineStyle(2, config.accentColor, 0.32);
+    readabilityPanel.lineStyle(2, config.accentColor, 1);
     readabilityPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 26);
 
     const robotY = isBuilderIntro ? panelY + 42 : panelY + 76;
@@ -1768,8 +1801,7 @@ export class CascataScene extends Phaser.Scene {
           this.markRobotIntroductionAsSeen(this.activeRobotIntroId);
           this.activeRobotIntroId = undefined;
         }
-        this.clearRobotIntroduction();
-        this.isRobotIntroActive = false;
+        this.clearRobotIntroduction(true);
       }
     });
   }
@@ -1799,7 +1831,7 @@ export class CascataScene extends Phaser.Scene {
     return sections.join("\n");
   }
 
-  private clearRobotIntroduction(): void {
+  private clearRobotIntroduction(resetState = false): void {
     this.robotIntroObjects.forEach((object) => {
       if (object.scene) {
         this.tweens.killTweensOf(object);
@@ -1807,6 +1839,28 @@ export class CascataScene extends Phaser.Scene {
       }
     });
     this.robotIntroObjects = [];
+
+    if (resetState) {
+      this.isRobotIntroActive = false;
+      this.activeRobotIntroId = undefined;
+      // Protect against undefined camera during scene shutdown
+      if (this.cameras?.main) {
+        this.tweens.killTweensOf(this.cameras.main);
+        this.cameras.main.setZoom(1);
+      }
+    }
+  }
+
+  private enableHomeButton(): void {
+    if (this.isSceneShuttingDown || !this.homeButton?.scene) {
+      return;
+    }
+
+    this.homeButton
+      .setVisible(true)
+      .setAlpha(1)
+      .setDepth(GLOBAL_NAV_BUTTON_DEPTH)
+      .setInteractive({ useHandCursor: true });
   }
 
   private hasSeenRobotIntroduction(robotId: string): boolean {
@@ -2081,7 +2135,8 @@ export class CascataScene extends Phaser.Scene {
 
   private createRightPanel(): void {
     this.panelContainer = this.createRobotPanel();
-    this.panelContainer.setScrollFactor(0).setDepth(10);
+    this.panelContainer.setScrollFactor(0).setDepth(ROBOT_PANEL_DEPTH);
+    this.registerUiCameraObject(this.panelContainer);
 
     this.createResetButton(this.getRobotPanelWidth() - 32, ROBOT_PANEL_HEIGHT - 30);
   }
@@ -2117,16 +2172,18 @@ export class CascataScene extends Phaser.Scene {
       width,
       height,
       glowColor: 0x56d7ff,
-      glowAlpha: 0.14,
+      glowAlpha: 0,
+      shadowAlpha: 1,
+      surfaceAlpha: 1,
       accentBorderColor: 0x58b8c9
     });
 
-    this.robotPanelFrame.fillStyle(FANTASY_PANEL_COLORS.titleSurface, 0.92);
+    this.robotPanelFrame.fillStyle(FANTASY_PANEL_COLORS.titleSurface, 1);
     this.robotPanelFrame.fillRoundedRect(16, 13, width - 32, ROBOT_PANEL_TITLE_HEIGHT, 5);
-    this.robotPanelFrame.lineStyle(2, FANTASY_PANEL_COLORS.titleBorder, 0.78);
+    this.robotPanelFrame.lineStyle(2, FANTASY_PANEL_COLORS.titleBorder, 1);
     this.robotPanelFrame.strokeRoundedRect(17, 14, width - 34, ROBOT_PANEL_TITLE_HEIGHT - 2, 4);
 
-    this.robotPanelFrame.fillStyle(FANTASY_PANEL_COLORS.scanLine, 0.35);
+    this.robotPanelFrame.fillStyle(FANTASY_PANEL_COLORS.scanLine, 1);
     for (let lineY = 56; lineY < height - 18; lineY += 15) {
       this.robotPanelFrame.fillRect(24, lineY, width - 48, 1);
     }
@@ -2204,6 +2261,7 @@ export class CascataScene extends Phaser.Scene {
     this.nextButton = this.add.image(0, 0, NEXT_BUTTON_KEY).setScale(0.2).setDepth(25).setAlpha(0);
     this.nextButton.setVisible(false);
     this.nextButton.setInteractive({ useHandCursor: true });
+    this.registerUiCameraObject(this.nextButton);
     this.nextButton.on("pointerdown", () => {
       if (this.isRobotIntroActive) {
         return;
@@ -2250,10 +2308,12 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private createHomeButton(): void {
-    this.homeButton = this.add.image(0, 0, HOME_BUTTON_KEY).setScale(0.16).setDepth(25);
+    this.homeButton = this.add.image(0, 0, HOME_BUTTON_KEY).setDisplaySize(83, 83).setDepth(GLOBAL_NAV_BUTTON_DEPTH);
     this.homeButton.setScrollFactor(0);
     this.homeButton.setInteractive({ useHandCursor: true });
+    this.registerUiCameraObject(this.homeButton);
     this.homeButton.on("pointerdown", () => {
+      this.homeButton?.disableInteractive();
       this.returnToWorldMap();
     });
   }
@@ -2262,9 +2322,37 @@ export class CascataScene extends Phaser.Scene {
     this.infoButton = this.add.image(0, 0, INFO_BUTTON_KEY).setDisplaySize(83, 83).setDepth(25);
     this.infoButton.setScrollFactor(0);
     this.infoButton.setInteractive({ useHandCursor: true });
+    this.registerUiCameraObject(this.infoButton);
     this.infoButton.on("pointerdown", () => {
       this.showHowToPlayPopup();
     });
+  }
+
+  private registerUiCameraObject(object: Phaser.GameObjects.GameObject): void {
+    this.uiCameraObjects.add(object);
+    this.cameras.main.ignore(object);
+    this.uiCamera?.ignore(this.children.list.filter((child) => !this.uiCameraObjects.has(child)));
+  }
+
+  private registerWorldCameraObject(object: Phaser.GameObjects.GameObject): void {
+    this.uiCamera?.ignore(object);
+  }
+
+  private setupUiCamera(): void {
+    this.uiCamera = this.cameras.add(0, 0, this.scale.width, this.scale.height);
+    this.uiCamera.setName("cascata-ui");
+    this.uiCamera.setRoundPixels(false);
+    this.uiCamera.setBackgroundColor("rgba(0,0,0,0)");
+    this.syncUiCameraLayers();
+  }
+
+  private syncUiCameraLayers(): void {
+    if (!this.uiCamera) {
+      return;
+    }
+
+    this.cameras.main.ignore([...this.uiCameraObjects]);
+    this.uiCamera.ignore(this.children.list.filter((object) => !this.uiCameraObjects.has(object)));
   }
 
   private showHowToPlayPopup(): void {
@@ -2720,7 +2808,7 @@ export class CascataScene extends Phaser.Scene {
 
   private installInputEvents(): void {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
-      if (currentlyOver.some((gameObject) => gameObject.getData("panelButton"))) {
+      if (currentlyOver.some((gameObject) => gameObject.getData("panelButton") || gameObject.getData("blocksSceneInput"))) {
         return;
       }
 
@@ -2893,6 +2981,17 @@ export class CascataScene extends Phaser.Scene {
         });
       }
     );
+  }
+
+  private removeCascataInputEvents(): void {
+    this.input.off(Phaser.Input.Events.POINTER_DOWN);
+    this.input.off(Phaser.Input.Events.GAMEOBJECT_OVER);
+    this.input.off(Phaser.Input.Events.GAMEOBJECT_OUT);
+    this.input.off(Phaser.Input.Events.GAMEOBJECT_DOWN);
+    this.input.off(Phaser.Input.Events.DRAG_START);
+    this.input.off(Phaser.Input.Events.DRAG);
+    this.input.off(Phaser.Input.Events.DROP);
+    this.input.off(Phaser.Input.Events.DRAG_END);
   }
 
   private updatePredictionPreview(
@@ -3223,6 +3322,9 @@ export class CascataScene extends Phaser.Scene {
 
     this.phaseWinHandled = true;
     this.time.delayedCall(TARGET_COMPLETE_AUDIO_DURATION_MS, () => {
+      if (this.isSceneShuttingDown) {
+        return;
+      }
       this.playAudioPlaceholder(AUDIO_PHASE_COMPLETE_KEY);
     });
     this.resultText?.setColor("#bbf7d0");
@@ -3285,18 +3387,25 @@ export class CascataScene extends Phaser.Scene {
           ? "Sequência otimizada. Cascata totalmente restaurada."
           : "Cascata restaurada. Sistema estabilizado."
       );
-      this.stabilizePhase8FinalVisuals();
-      this.resolveCascadeAudioFinale();
-      this.playFinalRestorationFeedback();
-      this.playUltimateRestorationFeedback();
-      this.playAudioPlaceholder(AUDIO_CORRUPTION_DESTROYED_KEY);
-      this.playAudioPlaceholder(AUDIO_CASCADE_RESTORED_KEY);
-      this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
-      this.playAudioPlaceholder(AUDIO_FINAL_VICTORY_KEY);
-      this.markBiomeAsCompleted();
-      this.showFinalCompletionPopup();
-      this.time.delayedCall(5000, () => this.returnToWorldMap());
+      this.finishFinalSubLevel();
+      return;
     }
+  }
+
+  private finishFinalSubLevel(): void {
+    this.stabilizePhase8FinalVisuals();
+    this.resolveCascadeAudioFinale();
+    this.playFinalRestorationFeedback();
+    this.playUltimateRestorationFeedback();
+    this.playAudioPlaceholder(AUDIO_CORRUPTION_DESTROYED_KEY);
+    this.playAudioPlaceholder(AUDIO_CASCADE_RESTORED_KEY);
+    this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
+    this.playAudioPlaceholder(AUDIO_FINAL_VICTORY_KEY);
+    this.markBiomeAsCompleted();
+    this.resultText?.setColor("#bbf7d0");
+    this.resultText?.setText("Cascata restaurada. Ecossistema estabilizado.");
+    this.showFinalCompletionPopup();
+    this.scheduleFinalCompletionReturn(5000);
   }
 
   private markBiomeAsCompleted(): void {
@@ -3635,7 +3744,7 @@ export class CascataScene extends Phaser.Scene {
 
     this.isPhase6To7NarrativeOpen = true;
     this.nextButton?.setVisible(false).disableInteractive();
-    this.homeButton?.setInteractive({ useHandCursor: true });
+    this.enableHomeButton();
     this.playAudioPlaceholder(AUDIO_CORRUPTION_WARNING_KEY);
 
     const overlay = this.add
@@ -3871,7 +3980,7 @@ export class CascataScene extends Phaser.Scene {
     });
     this.phase6To7NarrativeObjects = [];
     this.isPhase6To7NarrativeOpen = false;
-    this.homeButton?.setInteractive({ useHandCursor: true });
+    this.enableHomeButton();
   }
 
   private showFinalCompletionPopup(): void {
@@ -3881,9 +3990,14 @@ export class CascataScene extends Phaser.Scene {
 
     this.isFinalCompletionPopupOpen = true;
     this.nextButton?.setVisible(false).disableInteractive();
-    this.homeButton?.setInteractive({ useHandCursor: true });
-    this.playAudioPlaceholder(AUDIO_CASCADE_RESTORED_KEY);
-    this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
+    this.enableHomeButton();
+
+    try {
+      this.playAudioPlaceholder(AUDIO_CASCADE_RESTORED_KEY);
+      this.playAudioPlaceholder(AUDIO_ECOSYSTEM_RESTORED_KEY);
+    } catch (error) {
+      console.error("Erro ao tocar audio do popup final da Cascata.", error);
+    }
 
     const returnToWorldMapOnce = () => {
       if (!this.isFinalCompletionPopupOpen) {
@@ -3895,10 +4009,12 @@ export class CascataScene extends Phaser.Scene {
     };
 
     const overlay = this.add
-      .rectangle(0, 0, this.scale.width, this.scale.height, 0x03100f, 0.5)
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x03100f, 0.08)
       .setOrigin(0, 0)
       .setDepth(98)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setInteractive();
+    overlay.setData("blocksSceneInput", true);
 
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
@@ -3993,8 +4109,12 @@ export class CascataScene extends Phaser.Scene {
     buttonHitZone.on("pointerup", returnToWorldMapOnce);
 
     this.finalCompletionPopupObjects.push(overlay, halo, popup, buttonHitZone);
-    this.createFinalCompletionPopupParticles(panelX, panelY, panelWidth, panelHeight);
-    this.finalCompletionPopupEvents.push(this.time.delayedCall(9000, returnToWorldMapOnce));
+
+    try {
+      this.createFinalCompletionPopupParticles(panelX, panelY, panelWidth, panelHeight);
+    } catch (error) {
+      console.error("Erro ao criar particulas do popup final da Cascata.", error);
+    }
 
     this.tweens.add({
       targets: popup,
@@ -4024,6 +4144,26 @@ export class CascataScene extends Phaser.Scene {
       repeat: -1,
       ease: "Sine.InOut"
     });
+  }
+
+  private scheduleFinalCompletionReturn(delayMs: number): void {
+    if (this.finalCompletionReturnTimeoutId) {
+      this.finalCompletionReturnTimeoutId.remove(false);
+      this.finalCompletionPopupEvents = this.finalCompletionPopupEvents.filter(
+        (event) => event !== this.finalCompletionReturnTimeoutId
+      );
+      this.finalCompletionReturnTimeoutId = undefined;
+    }
+
+    const returnEvent = this.time.delayedCall(delayMs, () => {
+      this.finalCompletionReturnTimeoutId = undefined;
+      if (this.isSceneShuttingDown) {
+        return;
+      }
+      this.returnToWorldMap();
+    });
+    this.finalCompletionReturnTimeoutId = returnEvent;
+    this.finalCompletionPopupEvents.push(returnEvent);
   }
 
   private createFinalCompletionButton(
@@ -4164,6 +4304,11 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private closeFinalCompletionPopup(): void {
+    if (this.finalCompletionReturnTimeoutId) {
+      this.finalCompletionReturnTimeoutId.remove(false);
+      this.finalCompletionReturnTimeoutId = undefined;
+    }
+
     this.finalCompletionPopupEvents.forEach((event) => event.remove(false));
     this.finalCompletionPopupEvents = [];
     this.finalCompletionPopupObjects.forEach((object) => {
@@ -4186,7 +4331,7 @@ export class CascataScene extends Phaser.Scene {
     this.programmedSequence = Array(5).fill(undefined);
     this.programmedSequenceTargetOutput = "Solo";
     this.sequenceProgrammerSlotCenters = [];
-    this.homeButton?.setInteractive({ useHandCursor: true });
+    this.enableHomeButton();
     this.playAudioPlaceholder(AUDIO_AUTOMATION_EXECUTE_KEY);
 
     const panelWidth = Math.min(860, this.scale.width - 70);
@@ -4197,7 +4342,9 @@ export class CascataScene extends Phaser.Scene {
     const backdrop = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x010812, 0.28)
       .setOrigin(0, 0)
       .setDepth(88)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setInteractive();
+    backdrop.setData("blocksSceneInput", true);
 
     const panel = this.add.graphics().setDepth(89).setScrollFactor(0);
     panel.fillStyle(0x06131f, 0.78);
@@ -4297,13 +4444,22 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private createSequenceOperationPalette(panelX: number, panelY: number): void {
-    const operations: ProgrammedSequenceStep[] = [
+    const fallbackOperations: ProgrammedSequenceStep[] = [
       { operation: "addition", value: 10, label: "+10" },
       { operation: "addition", value: 5, label: "+5" },
       { operation: "subtraction", value: -10, label: "-10" },
       { operation: "multiply", value: 2, label: "x2" },
       { operation: "division", value: 2, label: "/2" }
     ];
+    const configuredOperations = SUB_LEVELS[this.currentSubLevel]?.robotButtons.map((button) => {
+      const value = button.value ?? this.getDefaultOperationValue(button.operation);
+      return {
+        operation: button.operation,
+        value,
+        label: this.getRobotButtonCaption(button.operation, value)
+      };
+    });
+    const operations = configuredOperations && configuredOperations.length > 0 ? configuredOperations : fallbackOperations;
 
     operations.forEach((step, index) => {
       this.createProgrammerOperationChip(panelX + 96, panelY + 204 + index * 64, step, "palette");
@@ -4507,6 +4663,12 @@ export class CascataScene extends Phaser.Scene {
       this.playAudioPlaceholder(AUDIO_AUTOMATION_EXECUTE_KEY);
       this.closeSequenceProgrammerPopup();
       biomaStoreApi.getState().atualizarProgresso(updatedOutputs);
+      this.checkWin();
+      if (this.phaseWinHandled) {
+        this.programmedSequence = Array(5).fill(undefined);
+        return;
+      }
+
       const slotView = [...this.slotViews.values()].find((slot) => slot.output === meta.output);
       if (slotView) {
         this.playAutomationSequenceFeedback(slotView, steps.length);
@@ -4630,7 +4792,7 @@ export class CascataScene extends Phaser.Scene {
     this.sequenceProgrammerSlotCenters = [];
     this.sequenceProgrammerResultText = undefined;
     this.isSequenceProgrammerOpen = false;
-    this.homeButton?.setInteractive({ useHandCursor: true });
+    this.enableHomeButton();
   }
 
   private updateSequenceLocks(): void {
@@ -5307,6 +5469,7 @@ export class CascataScene extends Phaser.Scene {
 
       const color = this.getPhaseEnergyRouteColor(route);
       const path = this.add.graphics().setDepth(3.15).setAlpha(0);
+      this.registerWorldCameraObject(path);
       path.setBlendMode(Phaser.BlendModes.ADD);
 
       this.phase6EnergyPaths.set(route, {
@@ -5364,6 +5527,7 @@ export class CascataScene extends Phaser.Scene {
     }
 
     const pulse = this.add.circle(start.x, start.y, 4, color, 0.94).setDepth(3.75);
+    this.registerWorldCameraObject(pulse);
     pulse.setBlendMode(Phaser.BlendModes.ADD);
     this.phase6EnergyObjects.push(pulse);
 
@@ -5427,6 +5591,7 @@ export class CascataScene extends Phaser.Scene {
       .container(position.x, position.y, [glow, halo, core, smallCore, orbitLayer])
       .setDepth(3.9)
       .setAlpha(0);
+    this.registerWorldCameraObject(orb);
     orb.setBlendMode(Phaser.BlendModes.ADD);
     orb.setData("baseAlpha", intensity);
 
@@ -5504,6 +5669,7 @@ export class CascataScene extends Phaser.Scene {
         }
 
         const wave = this.add.circle(center.x, center.y, 20, 0x8cf8ff, 0).setDepth(3.65);
+        this.registerWorldCameraObject(wave);
         wave.setStrokeStyle(3, 0x8cf8ff, 0.34);
         wave.setBlendMode(Phaser.BlendModes.ADD);
         this.phase6EnergyObjects.push(wave);
@@ -5919,8 +6085,13 @@ export class CascataScene extends Phaser.Scene {
 
   private resetSceneSessionState(): void {
     if (this.autoReturnTimeoutId) {
-      window.clearTimeout(this.autoReturnTimeoutId);
+      this.autoReturnTimeoutId.remove(false);
       this.autoReturnTimeoutId = undefined;
+    }
+
+    if (this.finalCompletionReturnTimeoutId) {
+      this.finalCompletionReturnTimeoutId.remove(false);
+      this.finalCompletionReturnTimeoutId = undefined;
     }
 
     this.phaseElements.clear();
@@ -5946,6 +6117,9 @@ export class CascataScene extends Phaser.Scene {
     this.phase6To7NarrativeObjects = [];
     this.phase6To7NarrativeEvents = [];
     this.isPhase6To7NarrativeOpen = false;
+    this.finalCompletionPopupObjects = [];
+    this.finalCompletionPopupEvents = [];
+    this.isFinalCompletionPopupOpen = false;
     this.sequenceProgrammerObjects = [];
     this.sequenceProgrammerDynamicObjects = [];
     this.sequenceProgrammerEvents = [];
@@ -6072,7 +6246,7 @@ export class CascataScene extends Phaser.Scene {
       path: AGUA_SOLO_PATH,
       x: 0,
       y: 0,
-      depth: -16
+      depth: WATER_FLOW_DEPTH
     });
   }
 
@@ -6103,12 +6277,12 @@ export class CascataScene extends Phaser.Scene {
       path: FLUXO_AGUA_SOLO_FASE_02_PATH,
       x: 0,
       y: 0,
-      depth: -16
+      depth: WATER_FLOW_DEPTH
     });
   }
 
   private applyPhase3CompletedVisualState(): void {
-    this.setPhaseElementTextureImmediate("arvores_mortas", ARVORES_RAIZES_FASE_03_KEY, -3);
+    this.setPhaseElementTextureImmediate("arvores_mortas", ARVORES_RAIZES_FASE_03_KEY, FASE_03_ARVORES_DEPTH);
     this.ensurePhaseSupportImmediate({
       id: "agua_flor",
       textureKey: FLUXO_AGUA_SENSOR_FASE_03_KEY,
@@ -6123,7 +6297,7 @@ export class CascataScene extends Phaser.Scene {
       path: FLUXO_AGUA_SOLO_FASE_03_PATH,
       x: 0,
       y: 0,
-      depth: -16
+      depth: WATER_FLOW_DEPTH
     });
   }
 
@@ -6154,7 +6328,7 @@ export class CascataScene extends Phaser.Scene {
       path: FLUXO_AGUA_SOLO_FASE_04_PATH,
       x: 0,
       y: 0,
-      depth: -16
+      depth: WATER_FLOW_DEPTH
     });
   }
 
@@ -6171,6 +6345,7 @@ export class CascataScene extends Phaser.Scene {
         .setOrigin(0, 0)
         .setDepth(this.getCascataOverlayDepth(textureKey))
         .setAlpha(1);
+      this.registerWorldCameraObject(overlay);
       this.cascataOverlay = overlay;
       this.phaseBackgroundLayers.push(overlay);
       return;
@@ -6370,6 +6545,7 @@ export class CascataScene extends Phaser.Scene {
 
   private trackPhase7VisualObject<T extends Phaser.GameObjects.GameObject>(object: T): T {
     this.phase7VisualObjects.push(object);
+    this.registerWorldCameraObject(object);
     return object;
   }
 
@@ -6605,6 +6781,7 @@ export class CascataScene extends Phaser.Scene {
 
   private trackPhase8VisualObject<T extends Phaser.GameObjects.GameObject>(object: T): T {
     this.phase8VisualObjects.push(object);
+    this.registerWorldCameraObject(object);
     return object;
   }
 
@@ -6869,11 +7046,15 @@ export class CascataScene extends Phaser.Scene {
     this.phase8FinalStable = true;
     this.clearPhase6EnergyNetwork();
     this.setSceneBackground(BACKGROUND_RESTORED_FASE_08_KEY);
+    this.phaseElements.forEach((element) => {
+      this.tweens.killTweensOf(element.image);
+      element.image.clearTint().setAlpha(1).setVisible(true);
+    });
     this.setCascataOverlayImmediate(CASCATA_FASE_06_KEY);
-    this.phaseElements.forEach((element) => element.image.clearTint().setAlpha(1));
     this.applyPhase8RestoredCrystalWaterFlow();
+    this.layoutFullscreenBackground();
 
-    const calm = this.trackPhase8VisualObject(this.add.graphics().setDepth(-0.5).setAlpha(0.42));
+    const calm = this.trackPhase8VisualObject(this.add.graphics().setDepth(-0.5).setAlpha(0.34));
     calm.setData("phase8Role", "final-calm");
     calm.setBlendMode(Phaser.BlendModes.ADD);
     this.drawPhase8FinalCalm(calm);
@@ -6988,7 +7169,7 @@ export class CascataScene extends Phaser.Scene {
         path: FLUXO_AGUA_SOLO_FASE_05_PATH,
         x: 0,
         y: 0,
-        depth: -16
+        depth: WATER_FLOW_DEPTH
       }
     ];
 
@@ -7195,7 +7376,7 @@ export class CascataScene extends Phaser.Scene {
           .setOrigin(0, 0)
           .setScale(1)
           .setAngle(0)
-          .setDepth(-3)
+          .setDepth(FASE_03_ARVORES_DEPTH)
           .clearTint();
       },
       760
@@ -7220,7 +7401,7 @@ export class CascataScene extends Phaser.Scene {
             path: FLUXO_AGUA_SOLO_FASE_04_PATH,
             x: 0,
             y: 0,
-            depth: -16
+            depth: WATER_FLOW_DEPTH
           }
         ];
       }
@@ -7250,7 +7431,7 @@ export class CascataScene extends Phaser.Scene {
             path: FLUXO_AGUA_SOLO_FASE_03_PATH,
             x: 0,
             y: 0,
-            depth: -16
+            depth: WATER_FLOW_DEPTH
           }
         ];
       }
@@ -7312,7 +7493,7 @@ export class CascataScene extends Phaser.Scene {
           path: FLUXO_AGUA_SOLO_FASE_02_PATH,
           x: 0,
           y: 0,
-          depth: -16
+          depth: WATER_FLOW_DEPTH
         }
       ];
     }
@@ -7365,7 +7546,7 @@ export class CascataScene extends Phaser.Scene {
     deadSprite.setAlpha(0);
 
     if (deadSprite.getData("output") === "Arvores") {
-      deadSprite.setDepth(-3);
+      deadSprite.setDepth(this.currentSubLevel === 3 ? FASE_03_ARVORES_DEPTH : -3);
     }
 
     if (this.currentSubLevel === 3) {
@@ -7397,11 +7578,15 @@ export class CascataScene extends Phaser.Scene {
   }
 
   private handleReset(): void {
+    this.clearScheduledNavigation();
+    this.clearActivePhaseRuntime();
     this.time.removeAllEvents();
     this.setupLevel(this.currentSubLevel);
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.uiCamera?.setViewport(0, 0, gameSize.width, gameSize.height);
+    this.uiCamera?.setSize(gameSize.width, gameSize.height);
     this.layoutScene(gameSize.width, gameSize.height);
   }
 
@@ -7682,6 +7867,36 @@ export class CascataScene extends Phaser.Scene {
     this.clearComputationalFlowVisuals();
   }
 
+  private clearScheduledNavigation(): void {
+    if (this.autoReturnTimeoutId) {
+      this.autoReturnTimeoutId.remove(false);
+      this.autoReturnTimeoutId = undefined;
+    }
+
+    if (this.finalCompletionReturnTimeoutId) {
+      this.finalCompletionReturnTimeoutId.remove(false);
+      this.finalCompletionReturnTimeoutId = undefined;
+    }
+
+    this.autoReturnScheduled = false;
+  }
+
+  private clearActivePhaseRuntime(): void {
+    this.clearRobotIntroduction(true);
+    this.closeDebugPopup();
+    this.closePhase6To7NarrativePopup();
+    this.closeFinalCompletionPopup();
+    this.closeSequenceProgrammerPopup();
+    this.closeHowToPlayPopup();
+    this.clearEnergyPanelIntro();
+    this.clearMissionPanelIntro();
+    this.clearPredictionPreview();
+    this.clearDraggedRobotPreview();
+    this.clearComputationalFlowVisuals();
+    this.clearPhase7Visuals();
+    this.clearPhase8Visuals();
+  }
+
   private getPendingRestoreDuration(): number {
     let pendingDuration = 0;
     const metas = biomaStoreApi.getState().metas;
@@ -7718,11 +7933,14 @@ export class CascataScene extends Phaser.Scene {
 
     this.autoReturnScheduled = true;
     this.nextButton?.setVisible(false).disableInteractive();
-    this.homeButton?.setInteractive({ useHandCursor: true });
+    this.enableHomeButton();
 
-    this.autoReturnTimeoutId = window.setTimeout(() => {
+    this.autoReturnTimeoutId = this.time.delayedCall(delayMs, () => {
       this.autoReturnTimeoutId = undefined;
-      this.homeButton?.setInteractive({ useHandCursor: true });
+      if (this.isSceneShuttingDown) {
+        return;
+      }
+      this.enableHomeButton();
       if (this.currentSubLevel === 6 && nextLevel === 7) {
         this.showPhase6To7NarrativePopup();
         this.autoReturnScheduled = false;
@@ -7730,7 +7948,7 @@ export class CascataScene extends Phaser.Scene {
       }
       this.setupLevel(nextLevel, { preservePhaseVisuals: true });
       this.autoReturnScheduled = false;
-    }, delayMs);
+    });
   }
 
   private returnToWorldMap(): void {
@@ -7739,15 +7957,16 @@ export class CascataScene extends Phaser.Scene {
     }
 
     this.isReturningToWorldMap = true;
-
-    if (this.autoReturnTimeoutId) {
-      window.clearTimeout(this.autoReturnTimeoutId);
-      this.autoReturnTimeoutId = undefined;
-    }
-
-    this.autoReturnScheduled = false;
+    this.isSceneShuttingDown = true;
+    this.input.enabled = false;
+    this.removeCascataInputEvents();
+    this.clearScheduledNavigation();
+    this.clearActivePhaseRuntime();
     this.cameras.main.resetFX();
     this.stopCascadeAudioSystem();
+    // NOTE: DO NOT call this.time.removeAllEvents() before scene.start()
+    // It can destroy internal Phaser timers needed for scene transitions.
+    // clearScheduledNavigation() already removes the specific timers we need to clean up.
     this.scene.start("WorldMapScene", { fromCascataComplete: true });
   }
 

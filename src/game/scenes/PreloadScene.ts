@@ -52,6 +52,13 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create() {
-    this.scene.start("IntroScene");
+    const shouldOpenWorldMap = window.sessionStorage.getItem("logcraft-open-world-map") === "true";
+    window.sessionStorage.removeItem("logcraft-open-world-map");
+
+    if (window.location.search) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.hash}`);
+    }
+
+    this.scene.start(shouldOpenWorldMap ? "WorldMapScene" : "IntroScene");
   }
 }
